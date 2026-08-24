@@ -24,7 +24,7 @@
             cursor: se-resize;
             display: none;
         }
-        .absolute:hover .resizer {
+        .room-box:hover .resizer {
             display: block;
         }
         @media print {
@@ -64,7 +64,7 @@
 
             <hr class="border-slate-800">
 
-            <!-- モード切替（選択・移動 vs フリー線描画） -->
+            <!-- 操作モード切替 -->
             <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1.5">操作モード切替</label>
                 <div class="grid grid-cols-2 gap-2">
@@ -123,9 +123,9 @@
             <div class="mt-auto bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 text-xs text-slate-400 leading-relaxed">
                 💡 <span class="text-slate-300 font-medium">操作ガイド：</span>
                 <ul class="list-disc list-inside mt-1 space-y-0.5 text-[11px]">
-                    <li>「フリー線描画」モードで線を引くと自動で直線・弧に補正されます</li>
-                    <li>部屋の右下隅ドラッグでサイズ変更</li>
-                    <li>ダブルクリックで要素を削除</li>
+                    <li>「選択・移動」モードでダブルクリックすると部屋・要素が消せます</li>
+                    <li>「フリー線描画」で引いた線は直線・弧に自動補正されます</li>
+                    <li>部屋ブロックの右下隅をドラッグでサイズ変更</li>
                 </ul>
             </div>
         </div>
@@ -145,7 +145,7 @@
                 <!-- 部屋配置グリッド領域 -->
                 <div id="roomContainer" class="flex-1 relative my-4 border border-slate-300 bg-slate-50/50 rounded overflow-hidden">
                     <!-- フリー線描画用SVGレイヤー -->
-                    <svg id="drawLayer" class="absolute inset-0 w-full h-full pointer-events-none z-20"></svg>
+                    <svg id="drawLayer" class="absolute inset-0 w-full h-full pointer-events-none z-25"></svg>
                 </div>
 
                 <!-- 図面フッター -->
@@ -183,7 +183,6 @@
             titleDisplay.textContent = val ? `${val}様邸 図面` : '（お名前未入力）様邸 図面';
         });
 
-        // 初期サンプル配置
         const initialRooms = [
             { name: '玄関', x: 20, y: 20, w: 120, h: 80 },
             { name: 'WC', x: 145, y: 20, w: 100, h: 80 },
@@ -212,7 +211,7 @@
             input.value = '';
         }
 
-        // 部屋ブロック作成（リサイズ対応）
+        // 部屋ブロック作成（削除・リサイズ・移動対応）
         function createRoomElement(name, x, y, w, h) {
             const div = document.createElement('div');
             div.className = 'room-box absolute bg-white border-2 border-slate-900 flex items-center justify-center text-xs font-bold text-slate-800 cursor-move select-none shadow-sm hover:border-blue-600 transition-colors z-10';
@@ -222,17 +221,18 @@
             div.style.height = h + 'px';
             div.textContent = name;
 
-            // リサイズハンドル
             const resizer = document.createElement('div');
             resizer.className = 'resizer';
             div.appendChild(resizer);
 
+            // ダブルクリック削除（選択モード時のみ）
             div.addEventListener('dblclick', (e) => {
                 e.stopPropagation();
-                div.remove();
+                if (currentMode === 'select') {
+                    div.remove();
+                }
             });
 
-            // ドラッグ移動
             let isDragging = false;
             let startX, startY;
 
@@ -256,9 +256,9 @@
                 div.style.zIndex = 10;
             });
 
-            // リサイズ処理
             resizer.addEventListener('mousedown', (e) => {
                 e.stopPropagation();
+                if (currentMode !== 'select') return;
                 let startW = div.offsetWidth;
                 let startH = div.offsetHeight;
                 let startMouseX = e.clientX;
@@ -315,7 +315,7 @@
             if(!tempPath) {
                 tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 tempPath.id = 'tempPath';
-                tempPath.setAttribute('stroke', '#94a3b8');
+                tempPath.setAttribute('stroke', '#3b82f6');
                 tempPath.setAttribute('stroke-width', '2');
                 tempPath.setAttribute('fill', 'none');
                 drawLayer.appendChild(tempPath);
@@ -357,7 +357,6 @@
             path.style.cursor = 'pointer';
 
             let dAttr = '';
-            // 膨らみが一定以上なら「弧（アーク）」、それ以外は「直線」に自動補正
             if (maxDeviation > lineLen * 0.15) {
                 dAttr = `M ${start.x} ${start.y} Q ${farthestPoint.x} ${farthestPoint.y} ${end.x} ${end.y}`;
             } else {
@@ -365,7 +364,15 @@
             }
 
             path.setAttribute('d', dAttr);
-            path.addEventListener('dblclick', () => path.remove());
+            
+            // 描画した線の削除（選択モード時のみダブルクリックで削除）
+            path.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                if (currentMode === 'select') {
+                    path.remove();
+                }
+            });
+
             drawLayer.appendChild(path);
         }
 
@@ -380,7 +387,10 @@
             marker.style.top = '80px';
             marker.textContent = labelText;
 
-            marker.addEventListener('dblclick', () => marker.remove());
+            marker.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                if (currentMode === 'select') marker.remove();
+            });
 
             let isDragging = false;
             let startX, startY;
@@ -422,7 +432,10 @@
             line.appendChild(b1);
             line.appendChild(b2);
 
-            line.addEventListener('dblclick', () => line.remove());
+            line.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                if (currentMode === 'select') line.remove();
+            });
 
             let isDragging = false;
             let startX, startY;
