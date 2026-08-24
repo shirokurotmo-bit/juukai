@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>福祉用具・住宅改修 配置図作成ツール</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #16a085;
+            --accent: #e74c3c;
+            --bg-color: #f8f9fa;
+            --panel-bg: #ffffff;
+            --border-color: #dcdde1;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            background-color: var(--bg-color);
+            color: #333;
+            line-height: 1.5;
+        }
+
+        /* Screen layout */
+        .app-container {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Panel */
+        .sidebar {
+            width: 320px;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            z-index: 10;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+            overflow-y: auto;
+        }
+
+        .sidebar h1 {
+            font-size: 1.1rem;
+            color: var(--primary);
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--secondary);
+            padding-bottom: 8px;
+        }
+
+        .section-title {
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin: 15px 0 8px 0;
+            color: #555;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .palette-item {
+            background: #f1f2f6;
+            border: 1px dashed #b2bec3;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            cursor: grab;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .palette-item:hover {
+            background: #dfe6e9;
+            border-color: var(--secondary);
+        }
+
+        .btn {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 15px;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #117a65;
+        }
+
+        .btn-print {
+            background: var(--primary);
+            margin-top: 10px;
+        }
+        .btn-print:hover {
+            background: #1a252f;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            margin-top: 5px;
+            padding: 6px;
+            font-size: 0.8rem;
+        }
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        /* Main Workspace */
+        .workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #e4e7eb;
+            overflow: auto;
+            padding: 30px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Printable Sheet (A4 Proportion / Canvas) */
+        .sheet {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            padding: 15mm;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .sheet-header {
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .sheet-header h2 {
+            font-size: 1.2rem;
+            color: #2c3e50;
+        }
+
+        .meta-info {
+            font-size: 0.8rem;
+            color: #555;
+            display: flex;
+            gap: 15px;
+        }
+
+        /* Grid Floor Plan Area */
+        .floor-plan-area {
+            flex: 1;
+            border: 2px solid #2c3e50;
+            position: relative;
+            background-image: 
+                linear-gradient(to right, #f1f2f6 1px, transparent 1px),
+                linear-gradient(to bottom, #f1f2f6 1px, transparent 1px);
+            background-size: 20px 20px;
+            height: 500px;
+        }
+
+        /* Placed Elements */
+        .placed-item {
+            position: absolute;
+            background: rgba(22, 160, 133, 0.2);
+            border: 2px solid var(--secondary);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #111;
+            cursor: move;
+            user-select: none;
+            padding: 4px;
+            text-align: center;
+        }
+
+        .placed-item.selected {
+            border-color: var(--accent);
+            background: rgba(231, 76, 60, 0.2);
+            box-shadow: 0 0 5px rgba(231, 76, 60, 0.5);
+        }
+
+        .sheet-footer {
+            margin-top: 15px;
+            border-top: 1px solid #dcdde1;
+            padding-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #7f8c8d;
+        }
+
+        /* Print Settings */
+        @media print {
+            body {
+                background: white;
+            }
+            .sidebar {
+                display: none;
+            }
+            .workspace {
+                background: white;
+                padding: 0;
+            }
+            .sheet {
+                box-shadow: none;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 10mm;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Sidebar Control Panel -->
+    <div class="sidebar no-print">
+        <h1>レイアウト作成ツール</h1>
+
+        <div class="section-title">物件・利用者情報</div>
+        <div class="form-group">
+            <label>利用者名 / 件名</label>
+            <input type="text" id="clientName" value="山田 太郎 様邸" placeholder="例: 山田 太郎 様邸">
+        </div>
+        <div class="form-group">
+            <label>図面種類</label>
+            <input type="text" id="sheetTitle" value="福祉用具配置計画図（居室）" placeholder="例: 福祉用具配置計画図">
+        </div>
+        <div class="form-group">
+            <label>作成日</label>
+            <input type="date" id="sheetDate">
+        </div>
+
+        <div class="section-title">用具・家具パーツ追加</div>
+        <p style="font-size: 0.75rem; color: #666; margin-bottom: 8px;">クリックして配置エリアに追加します</p>
+        
+        <div class="palette-item" onclick="addItem('介護ベッド (幅100×長200cm)', 100, 200)">
+            <span>介護ベッド</span><span>100×200cm</span>
+        </div>
+        <div class="palette-item" onclick="addItem('車いす (幅60×長100cm)', 60, 100)">
+            <span>車いす</span><span>60×100cm</span>
+        </div>
+        <div class="palette-item" onclick="addItem('ポータブルトイレ', 50, 50)">
+            <span>ポータブルトイレ</span><span>50×50cm</span>
+        </div>
+        <div class="palette-item" onclick="addItem('歩行器', 60, 60)">
+            <span>歩行器</span><span>60×60cm</span>
+        </div>
+        <div class="palette-item" onclick="addItem('タンス・収納', 80, 50)">
+            <span>収納家具</span><span>80×50cm</span>
+        </div>
+
+        <div id="selectedItemPanel" style="margin-top: 15px; padding: 10px; background: #f8f9fa; border: 1px solid #dcdde1; border-radius: 4px; display: none;">
+            <div class="section-title" style="margin-top:0;">選択中のパーツ操作</div>
+            <button class="btn btn-danger" onclick="deleteSelected()">選択中のパーツを削除</button>
+        </div>
+
+        <button class="btn btn-print" onclick="window.print()">印刷 / PDF保存</button>
+    </div>
+
+    <!-- Main Workspace Sheet -->
+    <div class="workspace">
+        <div class="sheet" id="printSheet">
+            <div class="sheet-header">
+                <div>
+                    <h2 id="displayTitle">福祉用具配置計画図（居室）</h2>
+                    <div style="font-size: 1.1rem; font-weight: bold; margin-top: 4px;" id="displayName">山田 太郎 様邸</div>
+                </div>
+                <div class="meta-info">
+                    <div>縮尺: 1/50 (目安)</div>
+                    <div>作成日: <span id="displayDate">2026-08-24</span></div>
+                </div>
+            </div>
+
+            <!-- Floor Plan Canvas / Grid -->
+            <div class="floor-plan-area" id="floorPlan">
+                <!-- Items will be injected here -->
+            </div>
+
+            <div class="sheet-footer">
+                <div>福祉用具・住宅改修プランニングシート</div>
+                <div>Yokkaichi Welfare Equipment Support</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('sheetDate').valueAsDate = new Date();
+    updateHeaderInfo();
+
+    document.getElementById('clientName').addEventListener('input', updateHeaderInfo);
+    document.getElementById('sheetTitle').addEventListener('input', updateHeaderInfo);
+    document.getElementById('sheetDate').addEventListener('input', updateHeaderInfo);
+
+    function updateHeaderInfo() {
+        document.getElementById('displayName').innerText = document.getElementById('clientName').value;
+        document.getElementById('displayTitle').innerText = document.getElementById('sheetTitle').value;
+        document.getElementById('displayDate').innerText = document.getElementById('sheetDate').value;
+    }
+
+    let items = [
+        { id: 1, name: '介護ベッド (幅100×長200cm)', w: 140, h: 220, x: 50, y: 50 }
+    ];
+    let selectedId = null;
+
+    function renderItems() {
+        const container = document.getElementById('floorPlan');
+        container.innerHTML = '';
+
+        items.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'placed-item' + (item.id === selectedId ? ' selected' : '');
+            el.style.left = item.x + 'px';
+            el.style.top = item.y + 'px';
+            el.style.width = item.w + 'px';
+            el.style.height = item.h + 'px';
+            el.innerText = item.name;
+
+            el.addEventListener('mousedown', (e) => startDrag(e, item.id));
+            el.onclick = (e) => {
+                e.stopPropagation();
+                selectedId = item.id;
+                document.getElementById('selectedItemPanel').style.display = 'block';
+                renderItems();
+            };
+
+            container.appendChild(el);
+        });
+
+        if (!selectedId) {
+            document.getElementById('selectedItemPanel').style.display = 'none';
+        }
+    }
+
+    function addItem(name, wCm, hCm) {
+        const scale = 1.2;
+        const newItem = {
+            id: Date.now(),
+            name: name,
+            w: Math.round(wCm * scale),
+            h: Math.round(hCm * scale),
+            x: 60 + (items.length * 15) % 200,
+            y: 60 + (items.length * 15) % 200
+        };
+        items.push(newItem);
+        selectedId = newItem.id;
+        document.getElementById('selectedItemPanel').style.display = 'block';
+        renderItems();
+    }
+
+    function deleteSelected() {
+        if (selectedId) {
+            items = items.filter(i => i.id !== selectedId);
+            selectedId = null;
+            renderItems();
+        }
+    }
+
+    document.getElementById('floorPlan').addEventListener('click', () => {
+        selectedId = null;
+        renderItems();
+    });
+
+    let activeId = null;
+    let startX = 0, startY = 0;
+    let initialX = 0, initialY = 0;
+
+    function startDrag(e, id) {
+        activeId = id;
+        selectedId = id;
+        document.getElementById('selectedItemPanel').style.display = 'block';
+        const item = items.find(i => i.id === id);
+        startX = e.clientX;
+        startY = e.clientY;
+        initialX = item.x;
+        initialY = item.y;
+
+        document.addEventListener('mousemove', onDrag);
+        document.addEventListener('mouseup', stopDrag);
+        renderItems();
+        e.stopPropagation();
+    }
+
+    function onDrag(e) {
+        if (!activeId) return;
+        const item = items.find(i => i.id === activeId);
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        item.x = Math.max(0, initialX + dx);
+        item.y = Math.max(0, initialY + dy);
+        renderItems();
+    }
+
+    function stopDrag() {
+        activeId = null;
+        document.removeEventListener('mousemove', onDrag);
+        document.removeEventListener('mouseup', stopDrag);
+    }
+
+    renderItems();
+</script>
+
+</body>
+</html>
