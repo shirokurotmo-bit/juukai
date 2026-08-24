@@ -2,445 +2,219 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>福祉用具・住宅改修 配置図作成ツール</title>
+    <title>福祉用具・住宅改修 図面作成システム</title>
+    <!-- Tailwind CSS for Modern UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --primary: #2c3e50;
-            --secondary: #16a085;
-            --accent: #e74c3c;
-            --bg-color: #f8f9fa;
-            --panel-bg: #ffffff;
-            --border-color: #dcdde1;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
-            background-color: var(--bg-color);
-            color: #333;
-            line-height: 1.5;
-        }
-
-        /* Screen layout */
-        .app-container {
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        /* Sidebar Panel */
-        .sidebar {
-            width: 320px;
-            background: var(--panel-bg);
-            border-right: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            z-index: 10;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
-            overflow-y: auto;
-        }
-
-        .sidebar h1 {
-            font-size: 1.1rem;
-            color: var(--primary);
-            margin-bottom: 15px;
-            border-bottom: 2px solid var(--secondary);
-            padding-bottom: 8px;
-        }
-
-        .section-title {
-            font-size: 0.9rem;
-            font-weight: bold;
-            margin: 15px 0 8px 0;
-            color: #555;
-        }
-
-        .form-group {
-            margin-bottom: 12px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 0.8rem;
-            color: #666;
-            margin-bottom: 4px;
-        }
-
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 0.9rem;
-        }
-
-        .palette-item {
-            background: #f1f2f6;
-            border: 1px dashed #b2bec3;
-            padding: 10px;
-            margin-bottom: 8px;
-            border-radius: 4px;
-            cursor: grab;
-            font-size: 0.85rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: background 0.2s;
-        }
-
-        .palette-item:hover {
-            background: #dfe6e9;
-            border-color: var(--secondary);
-        }
-
-        .btn {
-            background: var(--secondary);
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: bold;
-            width: 100%;
-            margin-top: 15px;
-            transition: background 0.2s;
-        }
-
-        .btn:hover {
-            background: #117a65;
-        }
-
-        .btn-print {
-            background: var(--primary);
-            margin-top: 10px;
-        }
-        .btn-print:hover {
-            background: #1a252f;
-        }
-
-        .btn-danger {
-            background: #e74c3c;
-            margin-top: 5px;
-            padding: 6px;
-            font-size: 0.8rem;
-        }
-        .btn-danger:hover {
-            background: #c0392b;
-        }
-
-        /* Main Workspace */
-        .workspace {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: #e4e7eb;
-            overflow: auto;
-            padding: 30px;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Printable Sheet (A4 Proportion / Canvas) */
-        .sheet {
-            width: 210mm;
-            min-height: 297mm;
-            background: white;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-            padding: 15mm;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-
-        .sheet-header {
-            border-bottom: 2px solid #333;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-        }
-
-        .sheet-header h2 {
-            font-size: 1.2rem;
-            color: #2c3e50;
-        }
-
-        .meta-info {
-            font-size: 0.8rem;
-            color: #555;
-            display: flex;
-            gap: 15px;
-        }
-
-        /* Grid Floor Plan Area */
-        .floor-plan-area {
-            flex: 1;
-            border: 2px solid #2c3e50;
-            position: relative;
+        body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+        .grid-bg {
+            background-size: 40px 40px;
             background-image: 
-                linear-gradient(to right, #f1f2f6 1px, transparent 1px),
-                linear-gradient(to bottom, #f1f2f6 1px, transparent 1px);
-            background-size: 20px 20px;
-            height: 500px;
+                linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
         }
-
-        /* Placed Elements */
-        .placed-item {
-            position: absolute;
-            background: rgba(22, 160, 133, 0.2);
-            border: 2px solid var(--secondary);
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            font-weight: bold;
-            color: #111;
-            cursor: move;
-            user-select: none;
-            padding: 4px;
-            text-align: center;
-        }
-
-        .placed-item.selected {
-            border-color: var(--accent);
-            background: rgba(231, 76, 60, 0.2);
-            box-shadow: 0 0 5px rgba(231, 76, 60, 0.5);
-        }
-
-        .sheet-footer {
-            margin-top: 15px;
-            border-top: 1px solid #dcdde1;
-            padding-top: 10px;
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.75rem;
-            color: #7f8c8d;
-        }
-
-        /* Print Settings */
+        /* 印刷時の最適化 */
         @media print {
-            body {
-                background: white;
-            }
-            .sidebar {
-                display: none;
-            }
-            .workspace {
-                background: white;
-                padding: 0;
-            }
-            .sheet {
-                box-shadow: none;
-                width: 100%;
-                height: 100%;
-                margin: 0;
-                padding: 10mm;
-            }
-            .no-print {
-                display: none !important;
-            }
+            body { background: white !important; color: black !important; }
+            no-print { display: none !important; }
+            .print-area { background: white !important; border: 2px solid black !important; box-shadow: none !important; color: black !important; }
         }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col">
 
-<div class="app-container">
-    <!-- Sidebar Control Panel -->
-    <div class="sidebar no-print">
-        <h1>レイアウト作成ツール</h1>
+    <!-- ヘッダー -->
+    <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex justify-between items-center no-print">
+        <div class="flex items-center space-x-3">
+            <span class="bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">FastCAD</span>
+            <h1 class="text-lg font-semibold tracking-wide">住宅改修・申請図面エディタ</h1>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-lg shadow-blue-500/20">
+                図面を印刷 / PDF出力
+            </button>
+        </div>
+    </header>
 
-        <div class="section-title">物件・利用者情報</div>
-        <div class="form-group">
-            <label>利用者名 / 件名</label>
-            <input type="text" id="clientName" value="山田 太郎 様邸" placeholder="例: 山田 太郎 様邸">
-        </div>
-        <div class="form-group">
-            <label>図面種類</label>
-            <input type="text" id="sheetTitle" value="福祉用具配置計画図（居室）" placeholder="例: 福祉用具配置計画図">
-        </div>
-        <div class="form-group">
-            <label>作成日</label>
-            <input type="date" id="sheetDate">
-        </div>
-
-        <div class="section-title">用具・家具パーツ追加</div>
-        <p style="font-size: 0.75rem; color: #666; margin-bottom: 8px;">クリックして配置エリアに追加します</p>
+    <!-- メインコンテンツ -->
+    <main class="flex-1 flex flex-col lg:flex-row p-6 gap-6 max-w-[1600px] w-full mx-auto">
         
-        <div class="palette-item" onclick="addItem('介護ベッド (幅100×長200cm)', 100, 200)">
-            <span>介護ベッド</span><span>100×200cm</span>
-        </div>
-        <div class="palette-item" onclick="addItem('車いす (幅60×長100cm)', 60, 100)">
-            <span>車いす</span><span>60×100cm</span>
-        </div>
-        <div class="palette-item" onclick="addItem('ポータブルトイレ', 50, 50)">
-            <span>ポータブルトイレ</span><span>50×50cm</span>
-        </div>
-        <div class="palette-item" onclick="addItem('歩行器', 60, 60)">
-            <span>歩行器</span><span>60×60cm</span>
-        </div>
-        <div class="palette-item" onclick="addItem('タンス・収納', 80, 50)">
-            <span>収納家具</span><span>80×50cm</span>
-        </div>
+        <!-- 左側：コントロールパネル（最新鋭ミニマル） -->
+        <div class="w-full lg:w-80 bg-slate-900/80 backdrop-blur border border-slate-800 rounded-2xl p-5 flex flex-col gap-6 no-print">
+            
+            <!-- 顧客情報入力 -->
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-2">お客様氏名</label>
+                <input type="text" id="clientName" value="小田 義重" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-blue-500 transition" placeholder="例: 山田 太郎">
+                <span class="text-xs text-slate-500 mt-1 block">様邸 図面</span>
+            </div>
 
-        <div id="selectedItemPanel" style="margin-top: 15px; padding: 10px; background: #f8f9fa; border: 1px solid #dcdde1; border-radius: 4px; display: none;">
-            <div class="section-title" style="margin-top:0;">選択中のパーツ操作</div>
-            <button class="btn btn-danger" onclick="deleteSelected()">選択中のパーツを削除</button>
-        </div>
-
-        <button class="btn btn-print" onclick="window.print()">印刷 / PDF保存</button>
-    </div>
-
-    <!-- Main Workspace Sheet -->
-    <div class="workspace">
-        <div class="sheet" id="printSheet">
-            <div class="sheet-header">
-                <div>
-                    <h2 id="displayTitle">福祉用具配置計画図（居室）</h2>
-                    <div style="font-size: 1.1rem; font-weight: bold; margin-top: 4px;" id="displayName">山田 太郎 様邸</div>
-                </div>
-                <div class="meta-info">
-                    <div>縮尺: 1/50 (目安)</div>
-                    <div>作成日: <span id="displayDate">2026-08-24</span></div>
+            <!-- 部屋ブロック追加 -->
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-2">部屋ブロック追加</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="addRoom('玄関')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2.5 px-3 rounded-xl border border-slate-700/55 transition text-left">＋ 玄関</button>
+                    <button onclick="addRoom('WC')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2.5 px-3 rounded-xl border border-slate-700/55 transition text-left">＋ WC</button>
+                    <button onclick="addRoom('脱衣場')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2.5 px-3 rounded-xl border border-slate-700/55 transition text-left">＋ 脱衣場</button>
+                    <button onclick="addRoom('風呂')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2.5 px-3 rounded-xl border border-slate-700/55 transition text-left">＋ 風呂</button>
+                    <button onclick="addRoom('廊下')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2.5 px-3 rounded-xl border border-slate-700/55 transition text-left">＋ 廊下</button>
+                    <button onclick="addRoom('居間')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2.5 px-3 rounded-xl border border-slate-700/55 transition text-left">＋ 居間</button>
+                    <button onclick="addRoom('和室/寝室')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2.5 px-3 rounded-xl border border-slate-700/55 transition text-left">＋ 和室/寝室</button>
+                    <button onclick="addRoom('台所')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2.5 px-3 rounded-xl border border-slate-700/55 transition text-left">＋ 台所</button>
                 </div>
             </div>
 
-            <!-- Floor Plan Canvas / Grid -->
-            <div class="floor-plan-area" id="floorPlan">
-                <!-- Items will be injected here -->
+            <!-- 注釈マーカー追加 -->
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-2">手すり・改修ポイント番号</label>
+                <div class="flex gap-2">
+                    <input type="text" id="markerLabel" value="①" class="w-16 bg-slate-950 border border-slate-800 rounded-xl px-2 py-2 text-sm text-center">
+                    <button onclick="addMarker()" class="flex-1 bg-amber-600/20 border border-amber-500/30 hover:bg-amber-600/30 text-amber-300 text-xs py-2 rounded-xl transition font-medium">マーカー配置</button>
+                </div>
             </div>
 
-            <div class="sheet-footer">
-                <div>福祉用具・住宅改修プランニングシート</div>
-                <div>Yokkaichi Welfare Equipment Support</div>
+            <div class="mt-auto bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 text-xs text-slate-400 leading-relaxed">
+                💡 <span class="text-slate-300 font-medium">使い方：</span>配置された部屋はドラッグで位置を微調整できます。不要な要素はダブルクリックで削除可能です。
             </div>
         </div>
-    </div>
-</div>
 
-<script>
-    document.getElementById('sheetDate').valueAsDate = new Date();
-    updateHeaderInfo();
+        <!-- 右側：図面キャンバスエリア -->
+        <div class="flex-1 bg-slate-900/60 border border-slate-800 rounded-2xl p-8 flex flex-col justify-center items-center relative overflow-hidden">
+            
+            <!-- 実際の図面フレーム -->
+            <div id="drawingCanvas" class="print-area bg-white text-slate-900 w-full max-w-4xl aspect-[4/3] rounded-lg shadow-2xl p-8 relative flex flex-col justify-between border-2 border-slate-900 grid-bg">
+                
+                <!-- タイトル行 -->
+                <div class="flex justify-between items-center border-b-2 border-slate-900 pb-3">
+                    <h2 id="titleDisplay" class="text-xl font-bold tracking-tight">小田 義重様邸 図面</h2>
+                    <span class="text-xs font-semibold tracking-widest text-slate-600 uppercase">FUKUSHI REFORM PLAN</span>
+                </div>
 
-    document.getElementById('clientName').addEventListener('input', updateHeaderInfo);
-    document.getElementById('sheetTitle').addEventListener('input', updateHeaderInfo);
-    document.getElementById('sheetDate').addEventListener('input', updateHeaderInfo);
+                <!-- 部屋配置グリッド領域 -->
+                <div id="roomContainer" class="flex-1 relative my-4 border border-slate-300 bg-slate-50/50 rounded">
+                    <!-- 初期サンプル配置（JavaScriptで制御） -->
+                </div>
 
-    function updateHeaderInfo() {
-        document.getElementById('displayName').innerText = document.getElementById('clientName').value;
-        document.getElementById('displayTitle').innerText = document.getElementById('sheetTitle').value;
-        document.getElementById('displayDate').innerText = document.getElementById('sheetDate').value;
-    }
+                <!-- 図面フッター -->
+                <div class="flex justify-between items-end text-xs text-slate-500 border-t border-slate-300 pt-3">
+                    <div>福祉用具・住宅改修 申請提出用図面</div>
+                    <div>縮尺：非宿尺（レイアウト確認用）</div>
+                </div>
 
-    let items = [
-        { id: 1, name: '介護ベッド (幅100×長200cm)', w: 140, h: 220, x: 50, y: 50 }
-    ];
-    let selectedId = null;
+            </div>
 
-    function renderItems() {
-        const container = document.getElementById('floorPlan');
-        container.innerHTML = '';
+        </div>
 
-        items.forEach(item => {
-            const el = document.createElement('div');
-            el.className = 'placed-item' + (item.id === selectedId ? ' selected' : '');
-            el.style.left = item.x + 'px';
-            el.style.top = item.y + 'px';
-            el.style.width = item.w + 'px';
-            el.style.height = item.h + 'px';
-            el.innerText = item.name;
+    </main>
 
-            el.addEventListener('mousedown', (e) => startDrag(e, item.id));
-            el.onclick = (e) => {
-                e.stopPropagation();
-                selectedId = item.id;
-                document.getElementById('selectedItemPanel').style.display = 'block';
-                renderItems();
-            };
+    <!-- インタラクション制御用JavaScript -->
+    <script>
+        const roomContainer = document.getElementById('roomContainer');
+        const clientNameInput = document.getElementById('clientName');
+        const titleDisplay = document.getElementById('titleDisplay');
 
-            container.appendChild(el);
+        // リアルタイムタイトル更新
+        clientNameInput.addEventListener('input', (e) => {
+            const val = e.target.value.trim();
+            titleDisplay.textContent = val ? `${val}様邸 図面` : '（お名前未入力）様邸 図面';
         });
 
-        if (!selectedId) {
-            document.getElementById('selectedItemPanel').style.display = 'none';
+        // 初期サンプルルームデータの配置
+        const initialRooms = [
+            { name: '玄関', x: 20, y: 20, w: 120, h: 80 },
+            { name: 'WC', x: 145, y: 20, w: 100, h: 80 },
+            { name: '脱衣場', x: 250, y: 20, w: 100, h: 80 },
+            { name: '風呂', x: 355, y: 20, w: 100, h: 80 },
+            { name: '廊下', x: 20, y: 105, w: 435, h: 60 },
+            { name: '和室/寝室', x: 20, y: 170, w: 210, h: 120 },
+            { name: '居間', x: 235, y: 170, w: 220, h: 120 },
+            { name: '台所', x: 460, y: 20, w: 120, h: 270 }
+        ];
+
+        function renderInitialRooms() {
+            roomContainer.innerHTML = '';
+            initialRooms.forEach(r => createRoomElement(r.name, r.x, r.y, r.w, r.h));
         }
-    }
 
-    function addItem(name, wCm, hCm) {
-        const scale = 1.2;
-        const newItem = {
-            id: Date.now(),
-            name: name,
-            w: Math.round(wCm * scale),
-            h: Math.round(hCm * scale),
-            x: 60 + (items.length * 15) % 200,
-            y: 60 + (items.length * 15) % 200
-        };
-        items.push(newItem);
-        selectedId = newItem.id;
-        document.getElementById('selectedItemPanel').style.display = 'block';
-        renderItems();
-    }
-
-    function deleteSelected() {
-        if (selectedId) {
-            items = items.filter(i => i.id !== selectedId);
-            selectedId = null;
-            renderItems();
+        function addRoom(name) {
+            createRoomElement(name, 50, 50, 100, 80);
         }
-    }
 
-    document.getElementById('floorPlan').addEventListener('click', () => {
-        selectedId = null;
-        renderItems();
-    });
+        function createRoomElement(name, x, y, w, h) {
+            const div = document.createElement('div');
+            div.className = 'absolute bg-white border-2 border-slate-900 flex items-center justify-center text-xs font-bold text-slate-800 cursor-move select-none shadow-sm hover:border-blue-600 transition-colors';
+            div.style.left = x + 'px';
+            div.style.top = y + 'px';
+            div.style.width = w + 'px';
+            div.style.height = h + 'px';
+            div.textContent = name;
 
-    let activeId = null;
-    let startX = 0, startY = 0;
-    let initialX = 0, initialY = 0;
+            // ダブルクリックで削除
+            div.addEventListener('dblclick', () => div.remove());
 
-    function startDrag(e, id) {
-        activeId = id;
-        selectedId = id;
-        document.getElementById('selectedItemPanel').style.display = 'block';
-        const item = items.find(i => i.id === id);
-        startX = e.clientX;
-        startY = e.clientY;
-        initialX = item.x;
-        initialY = item.y;
+            // ドラッグ移動ロジック
+            let isDragging = false;
+            let startX, startY;
 
-        document.addEventListener('mousemove', onDrag);
-        document.addEventListener('mouseup', stopDrag);
-        renderItems();
-        e.stopPropagation();
-    }
+            div.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX - div.offsetLeft;
+                startY = e.clientY - div.offsetTop;
+                div.style.zIndex = 100;
+            });
 
-    function onDrag(e) {
-        if (!activeId) return;
-        const item = items.find(i => i.id === activeId);
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-        item.x = Math.max(0, initialX + dx);
-        item.y = Math.max(0, initialY + dy);
-        renderItems();
-    }
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                let nx = e.clientX - startX;
+                let ny = e.clientY - startY;
+                div.style.left = Math.max(0, nx) + 'px';
+                div.style.top = Math.max(0, ny) + 'px';
+            });
 
-    function stopDrag() {
-        activeId = null;
-        document.removeEventListener('mousemove', onDrag);
-        document.removeEventListener('mouseup', stopDrag);
-    }
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+                div.style.zIndex = 1;
+            });
 
-    renderItems();
-</script>
+            roomContainer.appendChild(div);
+        }
 
+        function addMarker() {
+            const labelText = document.getElementById('markerLabel').value || '①';
+            const marker = document.createElement('div');
+            marker.className = 'absolute bg-amber-600 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold cursor-move shadow-md border border-white';
+            marker.style.left = '100px';
+            marker.style.top = '100px';
+            marker.textContent = labelText;
+
+            marker.addEventListener('dblclick', () => marker.remove());
+
+            let isDragging = false;
+            let startX, startY;
+
+            marker.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX - marker.offsetLeft;
+                startY = e.clientY - marker.offsetTop;
+                marker.style.zIndex = 200;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                marker.style.left = (e.clientX - startX) + 'px';
+                marker.style.top = (e.clientY - startY) + 'px';
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+                marker.style.zIndex = 10;
+            });
+
+            roomContainer.appendChild(marker);
+        }
+
+        // 初期化実行
+        window.onload = renderInitialRooms;
+    </script>
 </body>
 </html>
