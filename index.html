@@ -123,9 +123,9 @@
             <div class="mt-auto bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 text-xs text-slate-400 leading-relaxed">
                 💡 <span class="text-slate-300 font-medium">操作ガイド：</span>
                 <ul class="list-disc list-inside mt-1 space-y-0.5 text-[11px]">
-                    <li>「選択・移動」モードでダブルクリックすると部屋・要素が消せます</li>
+                    <li>「選択・移動」モードでダブルクリックすると削除できます</li>
                     <li>「フリー線描画」で引いた線は直線・弧に自動補正されます</li>
-                    <li>部屋ブロックの右下隅をドラッグでサイズ変更</li>
+                    <li>右下隅ドラッグでサイズ変更しても輪郭線は維持されます</li>
                 </ul>
             </div>
         </div>
@@ -211,10 +211,10 @@
             input.value = '';
         }
 
-        // 部屋ブロック作成（削除・リサイズ・移動対応）
+        // 部屋ブロック作成（削除・リサイズ・移動対応、輪郭線保持）
         function createRoomElement(name, x, y, w, h) {
             const div = document.createElement('div');
-            div.className = 'room-box absolute bg-white border-2 border-slate-900 flex items-center justify-center text-xs font-bold text-slate-800 cursor-move select-none shadow-sm hover:border-blue-600 transition-colors z-10';
+            div.className = 'room-box absolute bg-white border-2 border-slate-900 flex items-center justify-center text-xs font-bold text-slate-800 cursor-move select-none shadow-sm z-10';
             div.style.left = x + 'px';
             div.style.top = y + 'px';
             div.style.width = w + 'px';
@@ -225,7 +225,6 @@
             resizer.className = 'resizer';
             div.appendChild(resizer);
 
-            // ダブルクリック削除（選択モード時のみ）
             div.addEventListener('dblclick', (e) => {
                 e.stopPropagation();
                 if (currentMode === 'select') {
@@ -365,7 +364,6 @@
 
             path.setAttribute('d', dAttr);
             
-            // 描画した線の削除（選択モード時のみダブルクリックで削除）
             path.addEventListener('dblclick', (e) => {
                 e.stopPropagation();
                 if (currentMode === 'select') {
