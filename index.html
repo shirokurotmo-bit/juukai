@@ -13,10 +13,23 @@
                 linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
                 linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
         }
-        /* 印刷時の最適化 */
+        /* リサイズ用ハンドルのスタイル */
+        .resizer {
+            width: 8px;
+            height: 8px;
+            background: #2563eb;
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            cursor: se-resize;
+            display: none;
+        }
+        .absolute:hover .resizer {
+            display: block;
+        }
         @media print {
             body { background: white !important; color: black !important; }
-            no-print { display: none !important; }
+            .no-print { display: none !important; }
             .print-area { background: white !important; border: 2px solid black !important; box-shadow: none !important; color: black !important; }
         }
     </style>
@@ -26,7 +39,7 @@
     <!-- ヘッダー -->
     <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex justify-between items-center no-print">
         <div class="flex items-center space-x-3">
-            <span class="bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">FastCAD</span>
+            <span class="bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">FastCAD Pro</span>
             <h1 class="text-lg font-semibold tracking-wide">住宅改修・申請図面エディタ</h1>
         </div>
         <div class="flex items-center space-x-3">
@@ -39,42 +52,81 @@
     <!-- メインコンテンツ -->
     <main class="flex-1 flex flex-col lg:flex-row p-6 gap-6 max-w-[1600px] w-full mx-auto">
         
-        <!-- 左側：コントロールパネル（最新鋭ミニマル） -->
-        <div class="w-full lg:w-80 bg-slate-900/80 backdrop-blur border border-slate-800 rounded-2xl p-5 flex flex-col gap-6 no-print">
+        <!-- 左側：コントロールパネル -->
+        <div class="w-full lg:w-80 bg-slate-900/85 backdrop-blur border border-slate-800 rounded-2xl p-5 flex flex-col gap-5 no-print overflow-y-auto max-h-[calc(100vh-120px)]">
             
             <!-- 顧客情報入力 -->
             <div>
-                <label class="block text-xs font-medium text-slate-400 mb-2">お客様氏名</label>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">お客様氏名</label>
                 <input type="text" id="clientName" value="小田 義重" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-blue-500 transition" placeholder="例: 山田 太郎">
                 <span class="text-xs text-slate-500 mt-1 block">様邸 図面</span>
             </div>
 
-            <!-- 部屋ブロック追加 -->
+            <hr class="border-slate-800">
+
+            <!-- モード切替（選択・移動 vs フリー線描画） -->
             <div>
-                <label class="block text-xs font-medium text-slate-400 mb-2">部屋ブロック追加</label>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">操作モード切替</label>
                 <div class="grid grid-cols-2 gap-2">
-                    <button onclick="addRoom('玄関')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2.5 px-3 rounded-xl border border-slate-700/55 transition text-left">＋ 玄関</button>
-                    <button onclick="addRoom('WC')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2.5 px-3 rounded-xl border border-slate-700/55 transition text-left">＋ WC</button>
-                    <button onclick="addRoom('脱衣場')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2.5 px-3 rounded-xl border border-slate-700/55 transition text-left">＋ 脱衣場</button>
-                    <button onclick="addRoom('風呂')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2.5 px-3 rounded-xl border border-slate-700/55 transition text-left">＋ 風呂</button>
-                    <button onclick="addRoom('廊下')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2.5 px-3 rounded-xl border border-slate-700/55 transition text-left">＋ 廊下</button>
-                    <button onclick="addRoom('居間')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2.5 px-3 rounded-xl border border-slate-700/55 transition text-left">＋ 居間</button>
-                    <button onclick="addRoom('和室/寝室')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2.5 px-3 rounded-xl border border-slate-700/55 transition text-left">＋ 和室/寝室</button>
-                    <button onclick="addRoom('台所')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2.5 px-3 rounded-xl border border-slate-700/55 transition text-left">＋ 台所</button>
+                    <button onclick="setMode('select')" id="btnSelect" class="bg-blue-600 text-white text-xs py-2.5 px-3 rounded-xl font-medium transition">選択・移動</button>
+                    <button onclick="setMode('draw')" id="btnDraw" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs py-2.5 px-3 rounded-xl font-medium transition">フリー線描画</button>
                 </div>
             </div>
 
-            <!-- 注釈マーカー追加 -->
+            <hr class="border-slate-800">
+
+            <!-- 部屋ブロック新規作成 -->
             <div>
-                <label class="block text-xs font-medium text-slate-400 mb-2">手すり・改修ポイント番号</label>
-                <div class="flex gap-2">
-                    <input type="text" id="markerLabel" value="①" class="w-16 bg-slate-950 border border-slate-800 rounded-xl px-2 py-2 text-sm text-center">
-                    <button onclick="addMarker()" class="flex-1 bg-amber-600/20 border border-amber-500/30 hover:bg-amber-600/30 text-amber-300 text-xs py-2 rounded-xl transition font-medium">マーカー配置</button>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">部屋・スペース追加</label>
+                <div class="flex gap-2 mb-2">
+                    <input type="text" id="customRoomName" placeholder="部屋名 (例: 洋室)" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-blue-500">
+                    <button onclick="addNewCustomRoom()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-xl transition font-medium">追加</button>
+                </div>
+                <div class="grid grid-cols-2 gap-1.5">
+                    <button onclick="addRoom('玄関')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2 px-2.5 rounded-lg border border-slate-700/50 text-left">＋ 玄関</button>
+                    <button onclick="addRoom('WC')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2 px-2.5 rounded-lg border border-slate-700/50 text-left">＋ WC</button>
+                    <button onclick="addRoom('脱衣場')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2 px-2.5 rounded-lg border border-slate-700/50 text-left">＋ 脱衣場</button>
+                    <button onclick="addRoom('風呂')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2 px-2.5 rounded-lg border border-slate-700/50 text-left">＋ 風呂</button>
+                    <button onclick="addRoom('廊下')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2 px-2.5 rounded-lg border border-slate-700/50 text-left">＋ 廊下</button>
+                    <button onclick="addRoom('居間')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2 px-2.5 rounded-lg border border-slate-700/50 text-left">＋ 居間</button>
+                    <button onclick="addRoom('和室/寝室')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2 px-2.5 rounded-lg border border-slate-700/50 text-left">＋ 和室/寝室</button>
+                    <button onclick="addRoom('台所')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2 px-2.5 rounded-lg border border-slate-700/50 text-left">＋ 台所</button>
+                </div>
+            </div>
+
+            <hr class="border-slate-800">
+
+            <!-- マーカー・線パーツ追加 -->
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">手すり・注釈パーツ追加</label>
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <div>
+                        <span class="text-[10px] text-slate-500 block mb-1">番号/文字</span>
+                        <input type="text" id="markerLabel" value="①" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2 py-1.5 text-xs text-center">
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-slate-500 block mb-1">カラー選択</span>
+                        <select id="markerColor" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2 py-1.5 text-xs text-slate-200">
+                            <option value="bg-amber-600">オレンジ</option>
+                            <option value="bg-red-600">レッド</option>
+                            <option value="bg-blue-600">ブルー</option>
+                            <option value="bg-emerald-600">グリーン</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="addMarker()" class="bg-amber-600/20 border border-amber-500/30 hover:bg-amber-600/30 text-amber-300 text-xs py-2 rounded-xl transition font-medium">＋ 丸型マーカー</button>
+                    <button onclick="addLine()" class="bg-blue-600/20 border border-blue-500/30 hover:bg-blue-600/30 text-blue-300 text-xs py-2 rounded-xl transition font-medium">＋ 手すり・寸法線</button>
                 </div>
             </div>
 
             <div class="mt-auto bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 text-xs text-slate-400 leading-relaxed">
-                💡 <span class="text-slate-300 font-medium">使い方：</span>配置された部屋はドラッグで位置を微調整できます。不要な要素はダブルクリックで削除可能です。
+                💡 <span class="text-slate-300 font-medium">操作ガイド：</span>
+                <ul class="list-disc list-inside mt-1 space-y-0.5 text-[11px]">
+                    <li>「フリー線描画」モードで線を引くと自動で直線・弧に補正されます</li>
+                    <li>部屋の右下隅ドラッグでサイズ変更</li>
+                    <li>ダブルクリックで要素を削除</li>
+                </ul>
             </div>
         </div>
 
@@ -91,14 +143,15 @@
                 </div>
 
                 <!-- 部屋配置グリッド領域 -->
-                <div id="roomContainer" class="flex-1 relative my-4 border border-slate-300 bg-slate-50/50 rounded">
-                    <!-- 初期サンプル配置（JavaScriptで制御） -->
+                <div id="roomContainer" class="flex-1 relative my-4 border border-slate-300 bg-slate-50/50 rounded overflow-hidden">
+                    <!-- フリー線描画用SVGレイヤー -->
+                    <svg id="drawLayer" class="absolute inset-0 w-full h-full pointer-events-none z-20"></svg>
                 </div>
 
                 <!-- 図面フッター -->
                 <div class="flex justify-between items-end text-xs text-slate-500 border-t border-slate-300 pt-3">
                     <div>福祉用具・住宅改修 申請提出用図面</div>
-                    <div>縮尺：非宿尺（レイアウト確認用）</div>
+                    <div>縮尺：非縮尺（レイアウト確認用）</div>
                 </div>
 
             </div>
@@ -107,19 +160,30 @@
 
     </main>
 
-    <!-- インタラクション制御用JavaScript -->
+    <!-- コントロール制御用JavaScript -->
     <script>
         const roomContainer = document.getElementById('roomContainer');
+        const drawLayer = document.getElementById('drawLayer');
         const clientNameInput = document.getElementById('clientName');
         const titleDisplay = document.getElementById('titleDisplay');
 
-        // リアルタイムタイトル更新
+        let currentMode = 'select'; // 'select' or 'draw'
+        let isDrawingFree = false;
+        let freePoints = [];
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('btnSelect').className = mode === 'select' ? 'bg-blue-600 text-white text-xs py-2.5 px-3 rounded-xl font-medium transition' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs py-2.5 px-3 rounded-xl font-medium transition';
+            document.getElementById('btnDraw').className = mode === 'draw' ? 'bg-blue-600 text-white text-xs py-2.5 px-3 rounded-xl font-medium transition' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs py-2.5 px-3 rounded-xl font-medium transition';
+            roomContainer.style.cursor = mode === 'draw' ? 'crosshair' : 'default';
+        }
+
         clientNameInput.addEventListener('input', (e) => {
             const val = e.target.value.trim();
             titleDisplay.textContent = val ? `${val}様邸 図面` : '（お名前未入力）様邸 図面';
         });
 
-        // 初期サンプルルームデータの配置
+        // 初期サンプル配置
         const initialRooms = [
             { name: '玄関', x: 20, y: 20, w: 120, h: 80 },
             { name: 'WC', x: 145, y: 20, w: 100, h: 80 },
@@ -132,31 +196,49 @@
         ];
 
         function renderInitialRooms() {
-            roomContainer.innerHTML = '';
+            roomContainer.querySelectorAll('.room-box').forEach(el => el.remove());
             initialRooms.forEach(r => createRoomElement(r.name, r.x, r.y, r.w, r.h));
         }
 
         function addRoom(name) {
-            createRoomElement(name, 50, 50, 100, 80);
+            createRoomElement(name, 40, 40, 110, 80);
         }
 
+        function addNewCustomRoom() {
+            const input = document.getElementById('customRoomName');
+            const name = input.value.trim();
+            if(!name) return;
+            createRoomElement(name, 50, 50, 120, 80);
+            input.value = '';
+        }
+
+        // 部屋ブロック作成（リサイズ対応）
         function createRoomElement(name, x, y, w, h) {
             const div = document.createElement('div');
-            div.className = 'absolute bg-white border-2 border-slate-900 flex items-center justify-center text-xs font-bold text-slate-800 cursor-move select-none shadow-sm hover:border-blue-600 transition-colors';
+            div.className = 'room-box absolute bg-white border-2 border-slate-900 flex items-center justify-center text-xs font-bold text-slate-800 cursor-move select-none shadow-sm hover:border-blue-600 transition-colors z-10';
             div.style.left = x + 'px';
             div.style.top = y + 'px';
             div.style.width = w + 'px';
             div.style.height = h + 'px';
             div.textContent = name;
 
-            // ダブルクリックで削除
-            div.addEventListener('dblclick', () => div.remove());
+            // リサイズハンドル
+            const resizer = document.createElement('div');
+            resizer.className = 'resizer';
+            div.appendChild(resizer);
 
-            // ドラッグ移動ロジック
+            div.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                div.remove();
+            });
+
+            // ドラッグ移動
             let isDragging = false;
             let startX, startY;
 
             div.addEventListener('mousedown', (e) => {
+                if (currentMode !== 'select') return;
+                if (e.target === resizer) return;
                 isDragging = true;
                 startX = e.clientX - div.offsetLeft;
                 startY = e.clientY - div.offsetTop;
@@ -165,26 +247,137 @@
 
             window.addEventListener('mousemove', (e) => {
                 if (!isDragging) return;
-                let nx = e.clientX - startX;
-                let ny = e.clientY - startY;
-                div.style.left = Math.max(0, nx) + 'px';
-                div.style.top = Math.max(0, ny) + 'px';
+                div.style.left = Math.max(0, e.clientX - startX) + 'px';
+                div.style.top = Math.max(0, e.clientY - startY) + 'px';
             });
 
             window.addEventListener('mouseup', () => {
                 isDragging = false;
-                div.style.zIndex = 1;
+                div.style.zIndex = 10;
+            });
+
+            // リサイズ処理
+            resizer.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                let startW = div.offsetWidth;
+                let startH = div.offsetHeight;
+                let startMouseX = e.clientX;
+                let startMouseY = e.clientY;
+
+                function onMouseMove(em) {
+                    div.style.width = Math.max(50, startW + (em.clientX - startMouseX)) + 'px';
+                    div.style.height = Math.max(40, startH + (em.clientY - startMouseY)) + 'px';
+                }
+
+                function onMouseUp() {
+                    window.removeEventListener('mousemove', onMouseMove);
+                    window.removeEventListener('mouseup', onMouseUp);
+                }
+
+                window.addEventListener('mousemove', onMouseMove);
+                window.addEventListener('mouseup', onMouseUp);
             });
 
             roomContainer.appendChild(div);
         }
 
+        // フリーハンド描画イベント
+        roomContainer.addEventListener('mousedown', (e) => {
+            if (currentMode !== 'draw') return;
+            isDrawingFree = true;
+            const rect = roomContainer.getBoundingClientRect();
+            freePoints = [{ x: e.clientX - rect.left, y: e.clientY - rect.top }];
+        });
+
+        roomContainer.addEventListener('mousemove', (e) => {
+            if (!isDrawingFree || currentMode !== 'draw') return;
+            const rect = roomContainer.getBoundingClientRect();
+            freePoints.push({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+            drawTempLine();
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (!isDrawingFree || currentMode !== 'draw') return;
+            isDrawingFree = false;
+            if (freePoints.length < 2) return;
+
+            processAndRenderStroke(freePoints);
+            freePoints = [];
+            clearTempLine();
+        });
+
+        function drawTempLine() {
+            let pathData = `M ${freePoints[0].x} ${freePoints[0].y}`;
+            for(let i=1; i<freePoints.length; i++) {
+                pathData += ` L ${freePoints[i].x} ${freePoints[i].y}`;
+            }
+            let tempPath = document.getElementById('tempPath');
+            if(!tempPath) {
+                tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                tempPath.id = 'tempPath';
+                tempPath.setAttribute('stroke', '#94a3b8');
+                tempPath.setAttribute('stroke-width', '2');
+                tempPath.setAttribute('fill', 'none');
+                drawLayer.appendChild(tempPath);
+            }
+            tempPath.setAttribute('d', pathData);
+        }
+
+        function clearTempLine() {
+            const tempPath = document.getElementById('tempPath');
+            if(tempPath) tempPath.remove();
+        }
+
+        // 直線と弧の自動判別＆成形処理
+        function processAndRenderStroke(points) {
+            const start = points[0];
+            const end = points[points.length - 1];
+
+            let maxDeviation = 0;
+            let farthestPoint = start;
+
+            const dx = end.x - start.x;
+            const dy = end.y - start.y;
+            const lineLen = Math.sqrt(dx*dx + dy*dy);
+
+            if (lineLen < 10) return;
+
+            points.forEach(p => {
+                let dist = Math.abs(dy * p.x - dx * p.y + end.x * start.y - end.y * start.x) / lineLen;
+                if (dist > maxDeviation) {
+                    maxDeviation = dist;
+                    farthestPoint = p;
+                }
+            });
+
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('stroke', '#0f172a');
+            path.setAttribute('stroke-width', '2.5');
+            path.setAttribute('fill', 'none');
+            path.style.cursor = 'pointer';
+
+            let dAttr = '';
+            // 膨らみが一定以上なら「弧（アーク）」、それ以外は「直線」に自動補正
+            if (maxDeviation > lineLen * 0.15) {
+                dAttr = `M ${start.x} ${start.y} Q ${farthestPoint.x} ${farthestPoint.y} ${end.x} ${end.y}`;
+            } else {
+                dAttr = `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+            }
+
+            path.setAttribute('d', dAttr);
+            path.addEventListener('dblclick', () => path.remove());
+            drawLayer.appendChild(path);
+        }
+
+        // マーカー追加
         function addMarker() {
             const labelText = document.getElementById('markerLabel').value || '①';
+            const colorClass = document.getElementById('markerColor').value;
+            
             const marker = document.createElement('div');
-            marker.className = 'absolute bg-amber-600 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold cursor-move shadow-md border border-white';
-            marker.style.left = '100px';
-            marker.style.top = '100px';
+            marker.className = `absolute ${colorClass} text-white w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold cursor-move shadow-md border border-white select-none z-30`;
+            marker.style.left = '80px';
+            marker.style.top = '80px';
             marker.textContent = labelText;
 
             marker.addEventListener('dblclick', () => marker.remove());
@@ -193,6 +386,7 @@
             let startX, startY;
 
             marker.addEventListener('mousedown', (e) => {
+                if(currentMode !== 'select') return;
                 isDragging = true;
                 startX = e.clientX - marker.offsetLeft;
                 startY = e.clientY - marker.offsetTop;
@@ -207,13 +401,54 @@
 
             window.addEventListener('mouseup', () => {
                 isDragging = false;
-                marker.style.zIndex = 10;
+                marker.style.zIndex = 30;
             });
 
             roomContainer.appendChild(marker);
         }
 
-        // 初期化実行
+        // 手すり・寸法線パーツ追加
+        function addLine() {
+            const line = document.createElement('div');
+            line.className = 'absolute bg-amber-600 h-2 cursor-move shadow-sm select-none z-30';
+            line.style.left = '100px';
+            line.style.top = '100px';
+            line.style.width = '80px';
+
+            const b1 = document.createElement('div');
+            b1.className = 'absolute -left-1 -top-1 w-2 h-4 bg-slate-900 rounded-sm';
+            const b2 = document.createElement('div');
+            b2.className = 'absolute -right-1 -top-1 w-2 h-4 bg-slate-900 rounded-sm';
+            line.appendChild(b1);
+            line.appendChild(b2);
+
+            line.addEventListener('dblclick', () => line.remove());
+
+            let isDragging = false;
+            let startX, startY;
+
+            line.addEventListener('mousedown', (e) => {
+                if(currentMode !== 'select') return;
+                isDragging = true;
+                startX = e.clientX - line.offsetLeft;
+                startY = e.clientY - line.offsetTop;
+                line.style.zIndex = 150;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                line.style.left = (e.clientX - startX) + 'px';
+                line.style.top = (e.clientY - startY) + 'px';
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+                line.style.zIndex = 30;
+            });
+
+            roomContainer.appendChild(line);
+        }
+
         window.onload = renderInitialRooms;
     </script>
 </body>
