@@ -2,190 +2,598 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <title>Floorplanner Pro - Clone</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            background: #f1f5f9;
+            overflow: hidden;
+            color: #1e293b;
+        }
+        #sidebar {
+            width: 260px;
+            background: #ffffff;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+        .sidebar-header {
+            padding: 20px;
+            font-size: 15px;
+            font-weight: 600;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .brand-logo {
+            width: 16px;
+            height: 16px;
+            background: #2563eb;
+            border-radius: 3px;
+        }
+        .menu-list {
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+        .menu-section-title {
+            font-size: 10px;
+            font-weight: 700;
+            color: #94a3b8;
+            margin: 16px 0 6px 8px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .menu-item {
+            padding: 10px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: background 0.15s, color 0.15s;
+        }
+        .menu-item:hover { background: #f8fafc; color: #0f172a; }
+        .menu-item.active { background: #eff6ff; color: #2563eb; font-weight: 500; }
 
-    <meta name="theme-color" content="#ffffff">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+        .icon-shape {
+            width: 14px;
+            height: 14px;
+            display: inline-block;
+            border: 1.5px solid currentColor;
+        }
+        .icon-room { border-radius: 2px; background: rgba(0,0,0,0.05); }
+        .icon-wall { transform: rotate(45deg); width: 10px; height: 10px; }
+        .icon-door { border-left-width: 4px; }
+        .icon-window { border-style: dashed; }
+        .icon-bed { border-radius: 1px; height: 10px; }
+        .icon-sofa { border-radius: 3px; width: 16px; height: 10px; }
+        .icon-table { border-radius: 50%; }
+        .icon-select { border: none; background: currentColor; clip-path: polygon(0 0, 100% 50%, 50% 100%); }
 
-    <title>Floorplanner Pro</title>
+        .menu-action-area {
+            margin-top: auto;
+            padding-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .action-btn {
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .save-btn { background: #0f172a; color: #fff; }
+        .save-btn:hover { background: #1e293b; }
+        .clear-btn { background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; }
+        .clear-btn:hover { background: #ffe4e6; }
 
-    <link rel="stylesheet" href="style.css">
+        #main-container {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .top-bar {
+            height: 56px;
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            z-index: 10;
+        }
+        .project-info { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+        .project-label { color: #64748b; }
+        .project-name { font-weight: 600; }
+        .stats-badge { background: #f1f5f9; padding: 4px 10px; border-radius: 4px; font-size: 12px; color: #475569; font-weight: 500; }
 
+        .view-switch {
+            display: flex;
+            background: #f1f5f9;
+            padding: 3px;
+            border-radius: 6px;
+            gap: 2px;
+        }
+        .view-btn {
+            padding: 6px 16px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #64748b;
+        }
+        .view-btn.active { background: #ffffff; color: #0f172a; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+
+        #viewport {
+            flex-grow: 1;
+            position: relative;
+            background: #f8fafc;
+        }
+        canvas {
+            display: block;
+            cursor: crosshair;
+        }
+        #canvas3d {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: none;
+        }
+        .toolbar-float {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            z-index: 5;
+            overflow: hidden;
+        }
+        .float-btn {
+            width: 36px;
+            height: 36px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .float-btn:hover { background: #f8fafc; color: #0f172a; }
+        .float-btn:not(:last-child) { border-bottom: 1px solid #e2e8f0; }
+        .float-btn.active-snap { background: #eff6ff; color: #2563eb; font-weight: 600; }
+    </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
-
 <body>
 
-<div id="app">
+<div id="sidebar">
+    <div class="sidebar-header">
+        <div class="brand-logo"></div>
+        <strong>Floorplanner Pro</strong>
+    </div>
+    <div class="menu-list">
+        <div class="menu-section-title">Build</div>
+        <div class="menu-item active" onclick="setTool(event, 'room')"><i class="icon-shape icon-room"></i>Draw Room</div>
+        <div class="menu-item" onclick="setTool(event, 'wall')"><i class="icon-shape icon-wall"></i>Draw Wall</div>
+        <div class="menu-item" onclick="setTool(event, 'door')"><i class="icon-shape icon-door"></i>Place Doors</div>
+        <div class="menu-item" onclick="setTool(event, 'window')"><i class="icon-shape icon-window"></i>Place Windows</div>
+        
+        <div class="menu-section-title">Objects</div>
+        <div class="menu-item" onclick="setTool(event, 'bed')"><i class="icon-shape icon-bed"></i>Bed</div>
+        <div class="menu-item" onclick="setTool(event, 'sofa')"><i class="icon-shape icon-sofa"></i>Sofa</div>
+        <div class="menu-item" onclick="setTool(event, 'table')"><i class="icon-shape icon-table"></i>Table</div>
+        
+        <div class="menu-section-title">Tools</div>
+        <div class="menu-item" onclick="setTool(event, 'select')"><i class="icon-shape icon-select"></i>Select & Move</div>
 
-    <aside id="sidebar">
-        <div class="sidebar-header">
-            <div class="brand-logo"></div>
-            <div>
-                <strong>Floorplanner Pro</strong>
-                <span>Architecture Studio</span>
-            </div>
+        <div class="menu-action-area">
+            <button class="action-btn save-btn" onclick="saveProject()">Export JSON</button>
+            <button class="action-btn clear-btn" onclick="clearAll()">Reset All</button>
         </div>
-
-        <div class="menu-list">
-
-            <div class="menu-section-title">Build</div>
-
-            <button class="menu-item active" data-tool="room">
-                <i class="icon-shape icon-room"></i>
-                <span>Draw Room</span>
-            </button>
-
-            <button class="menu-item" data-tool="wall">
-                <i class="icon-shape icon-wall"></i>
-                <span>Draw Wall</span>
-            </button>
-
-            <button class="menu-item" data-tool="door">
-                <i class="icon-shape icon-door"></i>
-                <span>Place Doors</span>
-            </button>
-
-            <button class="menu-item" data-tool="window">
-                <i class="icon-shape icon-window"></i>
-                <span>Place Windows</span>
-            </button>
-
-            <div class="menu-section-title">Objects</div>
-
-            <button class="menu-item" data-tool="bed">
-                <i class="icon-shape icon-bed"></i>
-                <span>Bed</span>
-            </button>
-
-            <button class="menu-item" data-tool="sofa">
-                <i class="icon-shape icon-sofa"></i>
-                <span>Sofa</span>
-            </button>
-
-            <button class="menu-item" data-tool="table">
-                <i class="icon-shape icon-table"></i>
-                <span>Table</span>
-            </button>
-
-            <div class="menu-section-title">Tools</div>
-
-            <button class="menu-item" data-tool="select">
-                <i class="icon-shape icon-select"></i>
-                <span>Select & Move</span>
-            </button>
-
-            <div class="menu-action-area">
-                <button class="action-btn save-btn" id="exportBtn">
-                    Export JSON
-                </button>
-
-                <label class="action-btn import-btn">
-                    Import JSON
-                    <input type="file" id="importInput" accept=".json,application/json">
-                </label>
-
-                <button class="action-btn clear-btn" id="clearBtn">
-                    Reset All
-                </button>
-            </div>
-
-        </div>
-    </aside>
-
-    <main id="main-container">
-
-        <header class="top-bar">
-
-            <div class="project-info">
-                <span class="project-label">Project:</span>
-                <span class="project-name">Example House</span>
-                <span id="stats-badge" class="stats-badge">
-                    Area: 0.0 m²
-                </span>
-            </div>
-
-            <div class="top-actions">
-
-                <button class="undo-btn" id="undoBtn" title="Undo">
-                    ↶
-                </button>
-
-                <button class="undo-btn" id="redoBtn" title="Redo">
-                    ↷
-                </button>
-
-                <div class="view-switch">
-                    <button class="view-btn active" id="btn2d">
-                        2D
-                    </button>
-
-                    <button class="view-btn" id="btn3d">
-                        3D
-                    </button>
-                </div>
-
-            </div>
-
-        </header>
-
-        <section id="viewport">
-
-            <div class="toolbar-float">
-
-                <button
-                    class="float-btn active-snap"
-                    id="snap-btn"
-                    title="Snap to Grid">
-                    <span>Grid</span>
-                </button>
-
-                <button
-                    class="float-btn"
-                    id="zoomInBtn"
-                    title="Zoom In">
-                    +
-                </button>
-
-                <button
-                    class="float-btn"
-                    id="zoomOutBtn"
-                    title="Zoom Out">
-                    −
-                </button>
-
-                <button
-                    class="float-btn"
-                    id="fitBtn"
-                    title="Fit">
-                    Fit
-                </button>
-
-                <button
-                    class="float-btn danger"
-                    id="deleteBtn"
-                    title="Delete Selected">
-                    Del
-                </button>
-
-            </div>
-
-            <div id="mobile-hint">
-                1本指: 操作　・　2本指: 移動 / 拡大縮小
-            </div>
-
-            <canvas id="c2d"></canvas>
-
-            <div id="canvas3d"></div>
-
-        </section>
-
-    </main>
-
+    </div>
 </div>
 
-<script src="app.js"></script>
+<div id="main-container">
+    <div class="top-bar">
+        <div class="project-info">
+            <span class="project-label">Project:</span>
+            <span class="project-name">Example House</span>
+            <span id="stats-badge" class="stats-badge">Area: 0 m²</span>
+        </div>
+        <div class="view-switch">
+            <button class="view-btn active" id="btn2d" onclick="switchView('2d')">2D</button>
+            <button class="view-btn" id="btn3d" onclick="switchView('3d')">3D</button>
+        </div>
+    </div>
+    <div id="viewport">
+        <div class="toolbar-float">
+            <button class="float-btn active-snap" onclick="toggleSnap()" title="Snap to Grid" id="snap-btn">Grid</button>
+            <button class="float-btn" onclick="deleteSelected()" title="Delete Selected">Del</button>
+        </div>
+        <canvas id="c2d"></canvas>
+        <div id="canvas3d"></div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('c2d');
+    const ctx = canvas.getContext('2d');
+    const container3d = document.getElementById('canvas3d');
+
+    let currentTool = 'room';
+    let currentView = '2d';
+    let elements = [];
+    let isDrawing = false;
+    let startX, startY;
+    let selectedElement = null;
+    let offsetX, offsetY;
+    let snapToGrid = true;
+    const gridSize = 20;
+
+    let scene, camera, renderer;
+
+    function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+        redraw2D();
+    }
+    window.addEventListener('resize', resizeCanvas);
+    setTimeout(resizeCanvas, 50);
+
+    function setTool(e, tool) {
+        currentTool = tool;
+        document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        selectedElement = null;
+        redraw2D();
+    }
+
+    function switchView(view) {
+        currentView = view;
+        document.getElementById('btn2d').classList.toggle('active', view === '2d');
+        document.getElementById('btn3d').classList.toggle('active', view === '3d');
+        if (view === '3d') {
+            canvas.style.display = 'none';
+            container3d.style.display = 'block';
+            init3D();
+        } else {
+            canvas.style.display = 'block';
+            container3d.style.display = 'none';
+            redraw2D();
+        }
+    }
+
+    function toggleSnap() {
+        snapToGrid = !snapToGrid;
+        document.getElementById('snap-btn').classList.toggle('active-snap', snapToGrid);
+    }
+
+    function getCoords(e) {
+        const rect = canvas.getBoundingClientRect();
+        let x = e.clientX - rect.left;
+        let y = e.clientY - rect.top;
+        if (snapToGrid) {
+            x = Math.round(x / gridSize) * gridSize;
+            y = Math.round(y / gridSize) * gridSize;
+        }
+        return { x, y };
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+        const { x, y } = getCoords(e);
+
+        if (currentTool === 'select') {
+            selectedElement = elements.slice().reverse().find(el => {
+                if (el.type === 'room' || ['bed', 'sofa', 'table'].includes(el.type)) {
+                    return x >= el.x && x <= el.x + el.w && y >= el.y && y <= el.y + el.h;
+                } else {
+                    return Math.hypot(x - ((el.x1+el.x2)/2), y - ((el.y1+el.y2)/2)) < 25;
+                }
+            });
+            if (selectedElement) {
+                offsetX = x - (selectedElement.x || selectedElement.x1);
+                offsetY = y - (selectedElement.y || selectedElement.y1);
+            }
+            redraw2D();
+            return;
+        }
+
+        isDrawing = true;
+        startX = x;
+        startY = y;
+
+        if (['bed', 'sofa', 'table'].includes(currentTool)) {
+            const dims = currentTool === 'bed' ? {w:90, h:120, name:'Bed'} : currentTool === 'sofa' ? {w:140, h:70, name:'Sofa'} : {w:90, h:90, name:'Table'};
+            elements.push({ type: currentTool, x: x - dims.w/2, y: y - dims.h/2, w: dims.w, h: dims.h, name: dims.name });
+            isDrawing = false;
+            updateStats();
+            redraw2D();
+        }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        if (!isDrawing && !selectedElement) return;
+        const { x, y } = getCoords(e);
+
+        if (selectedElement && currentTool === 'select') {
+            if (selectedElement.x !== undefined) {
+                selectedElement.x = x - offsetX;
+                selectedElement.y = y - offsetY;
+            } else {
+                const dx = x - (selectedElement.x1 + offsetX);
+                const dy = y - (selectedElement.y1 + offsetY);
+                selectedElement.x1 += dx; selectedElement.y1 += dy;
+                selectedElement.x2 += dx; selectedElement.y2 += dy;
+                offsetX = x - selectedElement.x1;
+                offsetY = y - selectedElement.y1;
+            }
+            redraw2D();
+            return;
+        }
+
+        redraw2D();
+        ctx.strokeStyle = '#2563eb';
+        ctx.lineWidth = 1.5;
+        if (currentTool === 'room') {
+            ctx.strokeRect(startX, startY, x - startX, y - startY);
+        } else if (['wall', 'door', 'window'].includes(currentTool)) {
+            ctx.beginPath(); ctx.moveTo(startX, startY); ctx.lineTo(x, y); ctx.stroke();
+        }
+    });
+
+    canvas.addEventListener('mouseup', (e) => {
+        if (selectedElement) selectedElement = null;
+        if (!isDrawing) return;
+        isDrawing = false;
+
+        const { x: endX, y: endY } = getCoords(e);
+        if (startX === endX && startY === endY) return;
+
+        if (currentTool === 'room') {
+            elements.push({ 
+                type: 'room', 
+                x: Math.min(startX, endX), y: Math.min(startY, endY), 
+                w: Math.abs(endX - startX), h: Math.abs(endY - startY) 
+            });
+        } else if (['wall', 'door', 'window'].includes(currentTool)) {
+            elements.push({ type: currentTool, x1: startX, y1: startY, x2: endX, y2: endY });
+        }
+        updateStats();
+        redraw2D();
+    });
+
+    function deleteSelected() {
+        if (!selectedElement) return;
+        elements = elements.filter(el => el !== selectedElement);
+        selectedElement = null;
+        updateStats();
+        redraw2D();
+    }
+
+    function updateStats() {
+        let totalAreaPx = 0;
+        elements.forEach(el => {
+            if (el.type === 'room') {
+                totalAreaPx += (el.w * el.h);
+            }
+        });
+        const m2 = (totalAreaPx / 400).toFixed(1);
+        document.getElementById('stats-badge').innerText = `Area: ${m2} m²`;
+    }
+
+    function redraw2D() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // グリッド線
+        ctx.strokeStyle = '#f1f5f9';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < canvas.width; i += gridSize) {
+            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+        }
+        for (let j = 0; j < canvas.height; j += gridSize) {
+            ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke();
+        }
+
+        elements.forEach(el => {
+            ctx.save();
+            const isSel = (el === selectedElement);
+
+            if (el.type === 'room') {
+                ctx.fillStyle = isSel ? 'rgba(249,115,22,0.1)' : 'rgba(37,99,235,0.03)';
+                ctx.strokeStyle = isSel ? '#f97316' : '#334155';
+                ctx.lineWidth = isSel ? 3 : 2;
+                ctx.fillRect(el.x, el.y, el.w, el.h);
+                ctx.strokeRect(el.x, el.y, el.w, el.h);
+                
+                ctx.fillStyle = '#64748b'; ctx.font = '11px sans-serif';
+                ctx.fillText(`Room (${Math.round(el.w/4)}x${Math.round(el.h/4)}cm)`, el.x + 8, el.y + 18);
+            } else if (el.type === 'wall') {
+                ctx.lineWidth = isSel ? 6 : 4;
+                ctx.strokeStyle = isSel ? '#f97316' : '#1e293b';
+                ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
+            } else if (el.type === 'door') {
+                ctx.strokeStyle = isSel ? '#f97316' : '#d97706';
+                ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
+            } else if (el.type === 'window') {
+                ctx.strokeStyle = isSel ? '#f97316' : '#0ea5e9';
+                ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
+            } else if (el.type === 'bed') {
+                // ベッドのリアルな表現（フレーム、枕、布団）
+                ctx.fillStyle = isSel ? '#ffedd5' : '#ffffff';
+                ctx.strokeStyle = isSel ? '#f97316' : '#cbd5e1';
+                ctx.lineWidth = isSel ? 3 : 1.5;
+                ctx.fillRect(el.x, el.y, el.w, el.h);
+                ctx.strokeRect(el.x, el.y, el.w, el.h);
+
+                // 枕
+                ctx.fillStyle = isSel ? '#fed7aa' : '#e2e8f0';
+                ctx.fillRect(el.x + 10, el.y + 10, el.w - 20, 20);
+                
+                // ブランケット/シーツ部分
+                ctx.fillStyle = isSel ? '#ff8533' : '#3b82f6';
+                ctx.fillRect(el.x + 8, el.y + 35, el.w - 16, el.h - 43);
+            } else if (el.type === 'sofa') {
+                // ソファのリアルな表現（本体、背もたれ、クッション）
+                ctx.fillStyle = isSel ? '#ffedd5' : '#ffffff';
+                ctx.strokeStyle = isSel ? '#f97316' : '#cbd5e1';
+                ctx.lineWidth = isSel ? 3 : 1.5;
+                ctx.fillRect(el.x, el.y, el.w, el.h);
+                ctx.strokeRect(el.x, el.y, el.w, el.h);
+
+                // 背もたれ
+                ctx.fillStyle = isSel ? '#fed7aa' : '#94a3b8';
+                ctx.fillRect(el.x + 6, el.y + 6, el.w - 12, 16);
+
+                // クッション分割線
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(el.x + el.w/2, el.y + 22);
+                ctx.lineTo(el.x + el.w/2, el.y + el.h - 6);
+                ctx.stroke();
+            } else if (el.type === 'table') {
+                // テーブルのリアルな表現（天板と4隅の脚）
+                ctx.fillStyle = isSel ? '#ffedd5' : '#ffffff';
+                ctx.strokeStyle = isSel ? '#f97316' : '#cbd5e1';
+                ctx.lineWidth = isSel ? 3 : 1.5;
+                ctx.fillRect(el.x, el.y, el.w, el.h);
+                ctx.strokeRect(el.x, el.y, el.w, el.h);
+
+                // 中央の木目・デザイン線
+                ctx.strokeStyle = '#f1f5f9';
+                ctx.strokeRect(el.x + 6, el.y + 6, el.w - 12, el.h - 12);
+
+                // 4隅の脚
+                ctx.fillStyle = '#475569';
+                ctx.fillRect(el.x + 4, el.y + 4, 6, 6);
+                ctx.fillRect(el.x + el.w - 10, el.y + 4, 6, 6);
+                ctx.fillRect(el.x + 4, el.y + el.h - 10, 6, 6);
+                ctx.fillRect(el.x + el.w - 10, el.y + el.h - 10, 6, 6);
+            }
+            ctx.restore();
+        });
+    }
+
+    function init3D() {
+        container3d.innerHTML = '';
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf8fafc);
+
+        camera = new THREE.PerspectiveCamera(45, container3d.clientWidth / container3d.clientHeight, 1, 3000);
+        camera.position.set(400, 500, 600);
+        camera.lookAt(400, 0, 300);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container3d.clientWidth, container3d.clientHeight);
+        container3d.appendChild(renderer.domElement);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+        const dir = new THREE.DirectionalLight(0xffffff, 0.5);
+        dir.position.set(200, 500, 300);
+        scene.add(dir);
+
+        const grid = new THREE.GridHelper(1200, 30, 0xcbd5e1, 0xe2e8f0);
+        grid.position.set(400, 0, 300);
+        scene.add(grid);
+
+        elements.forEach(el => {
+            if (el.type === 'room') {
+                const mesh = new THREE.Mesh(
+                    new THREE.BoxGeometry(el.w, 2, el.h),
+                    new THREE.MeshLambertMaterial({ color: 0xe2e8f0 })
+                );
+                mesh.position.set(el.x + el.w/2, 1, el.y + el.h/2);
+                scene.add(mesh);
+            } else if (el.type === 'wall') {
+                const dx = el.x2 - el.x1, dz = el.y2 - el.y1;
+                const len = Math.hypot(dx, dz);
+                const angle = Math.atan2(dz, dx);
+                const mesh = new THREE.Mesh(
+                    new THREE.BoxGeometry(len, 60, 6),
+                    new THREE.MeshLambertMaterial({ color: 0x334155 })
+                );
+                mesh.position.set((el.x1 + el.x2)/2, 30, (el.y1 + el.y2)/2);
+                mesh.rotation.y = -angle;
+                scene.add(mesh);
+            } else if (el.type === 'bed') {
+                const group = new THREE.Group();
+                const base = new THREE.Mesh(new THREE.BoxGeometry(el.w, 15, el.h), new THREE.MeshLambertMaterial({ color: 0xffffff }));
+                base.position.set(0, 7.5, 0);
+                const pillow = new THREE.Mesh(new THREE.BoxGeometry(el.w - 16, 8, 20), new THREE.MeshLambertMaterial({ color: 0xe2e8f0 }));
+                pillow.position.set(0, 19, -el.h/2 + 15);
+                const blanket = new THREE.Mesh(new THREE.BoxGeometry(el.w - 8, 12, el.h - 35), new THREE.MeshLambertMaterial({ color: 0x3b82f6 }));
+                blanket.position.set(0, 14, 10);
+                group.add(base, pillow, blanket);
+                group.position.set(el.x + el.w/2, 0, el.y + el.h/2);
+                scene.add(group);
+            } else if (el.type === 'sofa') {
+                const group = new THREE.Group();
+                const seat = new THREE.Mesh(new THREE.BoxGeometry(el.w, 20, el.h - 15), new THREE.MeshLambertMaterial({ color: 0xd97706 }));
+                seat.position.set(0, 10, 7.5);
+                const back = new THREE.Mesh(new THREE.BoxGeometry(el.w, 40, 15), new THREE.MeshLambertMaterial({ color: 0xb45309 }));
+                back.position.set(0, 20, -el.h/2 + 7.5);
+                group.add(seat, back);
+                group.position.set(el.x + el.w/2, 0, el.y + el.h/2);
+                scene.add(group);
+            } else if (el.type === 'table') {
+                const group = new THREE.Group();
+                const top = new THREE.Mesh(new THREE.BoxGeometry(el.w, 6, el.h), new THREE.MeshLambertMaterial({ color: 0x78350f }));
+                top.position.set(0, 32, 0);
+                const legMat = new THREE.MeshLambertMaterial({ color: 0x1e293b });
+                const leg1 = new THREE.Mesh(new THREE.BoxGeometry(6, 30, 6), legMat); leg1.position.set(-el.w/2 + 8, 15, -el.h/2 + 8);
+                const leg2 = new THREE.Mesh(new THREE.BoxGeometry(6, 30, 6), legMat); leg2.position.set(el.w/2 - 8, 15, -el.h/2 + 8);
+                const leg3 = new THREE.Mesh(new THREE.BoxGeometry(6, 30, 6), legMat); leg3.position.set(-el.w/2 + 8, 15, el.h/2 - 8);
+                const leg4 = new THREE.Mesh(new THREE.BoxGeometry(6, 30, 6), legMat); leg4.position.set(el.w/2 - 8, 15, el.h/2 - 8);
+                group.add(top, leg1, leg2, leg3, leg4);
+                group.position.set(el.x + el.w/2, 0, el.y + el.h/2);
+                scene.add(group);
+            }
+        });
+
+        renderer.render(scene, camera);
+    }
+
+    function clearAll() {
+        if (confirm('すべての内容をリセットしますか？')) {
+            elements = [];
+            updateStats();
+            redraw2D();
+        }
+    }
+
+    function saveProject() {
+        const blob = new Blob([JSON.stringify(elements, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'floorplanner-pro-data.json'; a.click();
+        URL.revokeObjectURL(url);
+    }
+</script>
 
 </body>
 </html>
