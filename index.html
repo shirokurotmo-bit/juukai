@@ -1,586 +1,411 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>福祉用具・住宅改修 図面作成システム</title>
-<style>
-*{box-sizing:border-box}
-:root{
-  --bg:#0f172a;--panel:#111827;--panel2:#1e293b;--line:#334155;
-  --blue:#2563eb;--blue2:#3b82f6;--text:#f8fafc;--muted:#94a3b8;
-}
-body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Yu Gothic",Meiryo,sans-serif}
-button,input,select{font:inherit}
-button{cursor:pointer}
-.app{min-height:100vh;display:flex;flex-direction:column}
-header{height:64px;padding:0 20px;border-bottom:1px solid #1e293b;background:#0b1220;display:flex;align-items:center;justify-content:space-between}
-.brand{display:flex;align-items:center;gap:12px}
-.badge{background:var(--blue);padding:5px 9px;border-radius:6px;font-size:11px;font-weight:800}
-header h1{font-size:16px;margin:0}
-.header-actions{display:flex;gap:8px}
-.btn{border:1px solid var(--line);background:var(--panel2);color:#e2e8f0;border-radius:8px;padding:9px 13px;font-size:12px;font-weight:700}
-.btn:hover{background:#334155}
-.btn.primary{background:var(--blue);border-color:var(--blue)}
-.btn.primary:hover{background:var(--blue2)}
-.layout{flex:1;display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;padding:16px;max-width:1800px;width:100%;margin:auto}
-.sidebar{background:rgba(15,23,42,.96);border:1px solid #1e293b;border-radius:14px;padding:16px;overflow:auto;max-height:calc(100vh - 96px)}
-.section{padding:2px 0 16px;margin-bottom:16px;border-bottom:1px solid #1e293b}
-.section:last-child{border-bottom:0}
-label,.section-title{display:block;font-size:11px;color:var(--muted);font-weight:700;margin-bottom:7px}
-input,select{width:100%;background:#020617;color:#f8fafc;border:1px solid #334155;border-radius:8px;padding:9px 10px;font-size:12px;outline:none}
-input:focus,select:focus{border-color:var(--blue2)}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.tool{width:100%;border:1px solid #334155;background:#1e293b;color:#e2e8f0;border-radius:8px;padding:9px 7px;font-size:11px;font-weight:700;text-align:left}
-.tool:hover{background:#334155}
-.mode{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.mode button{border:1px solid #334155;background:#1e293b;color:#cbd5e1;border-radius:8px;padding:10px 5px;font-size:11px;font-weight:700}
-.mode button.active{background:var(--blue);border-color:var(--blue);color:#fff}
-.small-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.help{background:#020617;border:1px solid #1e293b;border-radius:9px;padding:10px;font-size:10px;color:#94a3b8;line-height:1.65}
-.help b{color:#cbd5e1}
-.workspace{min-width:0;background:#111827;border:1px solid #1e293b;border-radius:14px;display:flex;flex-direction:column;overflow:hidden}
-.toolbar{height:48px;padding:0 12px;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;gap:10px}
-.toolbar-left,.toolbar-right{display:flex;align-items:center;gap:7px}
-.status{font-size:11px;color:#94a3b8}
-.canvas-scroll{flex:1;overflow:auto;padding:24px;background:#0b1220;display:flex;align-items:flex-start;justify-content:center}
-.paper{position:relative;flex:none;width:min(1100px,calc(100vw - 390px));min-width:700px;aspect-ratio:4/3;background:#fff;color:#0f172a;border:2px solid #0f172a;border-radius:6px;box-shadow:0 18px 50px rgba(0,0,0,.4);padding:28px;display:flex;flex-direction:column}
-.paper-head{height:46px;border-bottom:2px solid #0f172a;display:flex;justify-content:space-between;align-items:flex-start}
-.paper-title{font-size:20px;font-weight:800}
-.paper-sub{font-size:10px;color:#64748b;letter-spacing:2px;font-weight:800}
-.room-container{position:relative;flex:1;margin:14px 0;border:1px solid #cbd5e1;overflow:hidden;background-image:linear-gradient(#e2e8f0 1px,transparent 1px),linear-gradient(90deg,#e2e8f0 1px,transparent 1px);background-size:40px 40px}
-.room-container.draw-mode{cursor:crosshair}
-.room-container.select-mode{cursor:default}
-#drawLayer{position:absolute;inset:0;width:100%;height:100%;z-index:20;pointer-events:none}
-#drawLayer path{pointer-events:stroke}
-#drawLayer path.selected{stroke:#2563eb!important;stroke-width:4!important}
-.shape-overlay{position:absolute;inset:0;z-index:40;pointer-events:none}
-.shape-overlay .vertex{position:absolute;width:12px;height:12px;border-radius:50%;background:#2563eb;border:2px solid #fff;box-shadow:0 1px 4px #0005;transform:translate(-50%,-50%);pointer-events:auto;cursor:move}
-.shape-overlay .vertex.active{background:#dc2626}
-.shape-overlay .edge-hit{position:absolute;height:14px;background:transparent;transform-origin:left center;pointer-events:auto;cursor:crosshair}
-.room-box,.marker,.rail{position:absolute;user-select:none}
-.room-box{background:#fff;border:2px solid #0f172a;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;cursor:move;z-index:10;min-width:50px;min-height:40px}
-.room-box.selected,.marker.selected,.rail.selected{outline:2px solid #3b82f6;outline-offset:2px}
-.resizer{position:absolute;right:-1px;bottom:-1px;width:12px;height:12px;background:#2563eb;cursor:nwse-resize;border:2px solid #fff;display:none}
-.room-box:hover .resizer,.room-box.selected .resizer{display:block}
-.marker{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800;cursor:move;z-index:30;border:2px solid #fff;box-shadow:0 2px 5px #0004}
-.marker.orange{background:#d97706}.marker.red{background:#dc2626}.marker.blue{background:#2563eb}.marker.green{background:#059669}
-.rail{height:8px;background:#d97706;border-radius:3px;cursor:move;z-index:30;box-shadow:0 1px 3px #0003}
-.rail:before,.rail:after{content:"";position:absolute;top:-4px;width:8px;height:16px;background:#0f172a;border-radius:2px}
-.rail:before{left:-2px}.rail:after{right:-2px}
-.paper-foot{height:25px;border-top:1px solid #cbd5e1;padding-top:7px;display:flex;justify-content:space-between;font-size:9px;color:#64748b}
-.empty-tip{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:11px;pointer-events:none}
-.hidden{display:none!important}
-.toast{position:fixed;right:20px;bottom:20px;background:#020617;color:#fff;border:1px solid #334155;padding:10px 14px;border-radius:8px;font-size:11px;opacity:0;transform:translateY(10px);transition:.2s;pointer-events:none;z-index:999}
-.toast.show{opacity:1;transform:translateY(0)}
-
-/* ===== mobile / tablet ===== */
-.mobile-toolbar{display:none}
-@media (max-width:900px){
- body{overflow:hidden}
- .layout{display:block;padding:0;height:calc(100vh - 60px)}
- .sidebar{position:fixed;z-index:200;left:0;top:60px;bottom:0;width:min(88vw,340px);max-height:none;border-radius:0 14px 14px 0;transform:translateX(-105%);transition:transform .2s;box-shadow:12px 0 30px #0007}
- .sidebar.open{transform:translateX(0)}
- .workspace{height:100%;border:0;border-radius:0}
- .toolbar{height:48px}
- .canvas-scroll{padding:12px;touch-action:none;overflow:hidden;justify-content:flex-start}
- .paper{transform-origin:top left}
- .mobile-toolbar{display:flex;position:fixed;z-index:180;left:8px;right:8px;bottom:8px;gap:6px;padding:7px;background:#020617eF;border:1px solid #334155;border-radius:13px;box-shadow:0 8px 25px #0008}
- .mobile-toolbar button{flex:1;min-height:44px;border:1px solid #334155;background:#1e293b;color:#fff;border-radius:9px;font-size:11px;font-weight:800}
- .mobile-toolbar button.active{background:#2563eb;border-color:#2563eb}
- .room-box .resizer{width:28px!important;height:28px!important;right:-10px!important;bottom:-10px!important}
- .shape-overlay .vertex{width:24px;height:24px}
-}
-@media (min-width:901px){.mobile-toolbar{display:none!important}}
-
-@media print{
-  body{background:#fff}
-  header,.sidebar,.toolbar{display:none!important}
-  .layout{display:block;padding:0}
-  .workspace{border:0}
-  .canvas-scroll{padding:0;background:#fff;overflow:visible}
-  .paper{width:100%;min-width:0;box-shadow:none;border:2px solid #000;border-radius:0}
-}
-@media(max-width:900px){
-  .layout{grid-template-columns:1fr}
-  .sidebar{max-height:none}
-  .paper{width:900px;min-width:900px}
-  .canvas-scroll{justify-content:flex-start}
-}
-</style>
+    <meta charset="UTF-8">
+    <title>マイ間取りエディタ（完全版）</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            background: #f0f2f5;
+            overflow: hidden;
+        }
+        #sidebar {
+            width: 260px;
+            background: #fff;
+            border-right: 1px solid #ddd;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 10;
+        }
+        h2 { font-size: 16px; margin: 0 0 10px 0; color: #333; }
+        .section-title { font-size: 12px; color: #888; margin-top: 10px; font-weight: bold; }
+        .tool-btn {
+            padding: 10px;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .tool-btn.active {
+            background: #0066ff;
+            color: #fff;
+            border-color: #0052cc;
+        }
+        #main-area {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas {
+            background: #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            cursor: crosshair;
+        }
+        #view-mode {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #fff;
+            padding: 5px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 5px;
+            z-index: 10;
+        }
+        .mode-btn {
+            padding: 6px 14px;
+            border: none;
+            background: #f0f0f0;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .mode-btn.active {
+            background: #0066ff;
+            color: #fff;
+        }
+        .actions {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .action-btn {
+            padding: 10px;
+            background: #333;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .action-btn:hover { background: #444; }
+        #canvas3d {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: none;
+            background: #e0e8f0;
+        }
+    </style>
+    <!-- Three.js CDN for 3D View -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
-<div class="app">
-<header>
-  <div class="brand"><span class="badge">FastCAD Pro</span><h1>住宅改修・申請図面エディタ</h1></div>
-  <div class="header-actions">
-    <button class="btn" id="undoBtn">↶ 元に戻す</button>
-    <button class="btn" id="clearBtn">全消去</button>
-    <button class="btn primary" id="printBtn">印刷 / PDF</button>
-  </div>
-</header>
 
-<div class="layout">
-<div class="mobile-toolbar" id="mobileToolbar"><button id="menuBtn">☰ メニュー</button><button id="mSelect" class="active">選択</button><button id="mDraw">描く</button><button id="mRoom">部屋</button><button id="mDelete">削除</button></div>
-<aside class="sidebar">
-  <div class="section">
-    <label>お客様氏名</label>
-    <input id="clientName" value="小田 義重" placeholder="例：山田 太郎">
-  </div>
+<div id="sidebar">
+    <h2>間取りエディタ</h2>
+    
+    <div class="section-title">建築 (Build)</div>
+    <button class="tool-btn active" onclick="setTool('room')">■ Draw Room (部屋)</button>
+    <button class="tool-btn" onclick="setTool('wall')">╱ Draw Wall (壁)</button>
 
-  <div class="section">
-    <span class="section-title">操作モード</span>
-    <div class="mode">
-      <button id="selectMode" class="active">選択・移動</button>
-      <button id="drawMode">線を描く</button>
-    </div>
-  </div>
+    <div class="section-title">設備・開口部</div>
+    <button class="tool-btn" onclick="setTool('door')">🚪 Place Door (ドア)</button>
+    <button class="tool-btn" onclick="setTool('window')">🪟 Place Window (窓)</button>
 
-  <div class="section">
-    <span class="section-title">部屋・スペース追加</span>
-    <div style="display:flex;gap:6px;margin-bottom:7px">
-      <input id="customRoomName" placeholder="部屋名" style="flex:1">
-      <button class="btn primary" id="customAdd" style="padding:7px 10px">追加</button>
-    </div>
-    <div class="grid2" id="roomButtons"></div>
-  </div>
+    <div class="section-title">オブジェクト (Objects)</div>
+    <button class="tool-btn" onclick="setTool('furniture-bed')">🛏️ ベッド</button>
+    <button class="tool-btn" onclick="setTool('furniture-sofa')">🛋️ ソファ</button>
+    <button class="tool-btn" onclick="setTool('furniture-table')">🪑 テーブル</button>
 
-  <div class="section">
-    <span class="section-title">自由な間取り</span>
-    <button class="tool primary" id="freeRoomBtn">＋ 部屋を自由に描く</button>
-    <div class="help" style="margin-top:8px">図面上をタップして頂点を追加。最後の頂点をもう一度タップ、またはダブルタップで部屋を確定します。名前は後から入力できます。</div>
-    <div style="margin-top:8px"><label>選択中の部屋名</label><div style="display:flex;gap:6px"><input id="roomNameInput" placeholder="例：寝室"><button class="btn primary" id="renameRoomBtn">反映</button></div></div>
-  </div>
+    <div class="section-title">操作</div>
+    <button class="tool-btn" onclick="setTool('select')">✋ 選択・移動</button>
 
-  <div class="section">
-    <span class="section-title">部屋ブロック編集</span>
-    <div class="grid2">
-      <button class="tool" id="editShapeBtn">頂点を編集</button>
-      <button class="tool" id="addVertexBtn">頂点を追加</button>
-      <button class="tool" id="deleteVertexBtn">頂点を削除</button>
-      <button class="tool" id="finishShapeBtn">編集終了</button>
+    <div class="actions">
+        <button class="action-btn" onclick="saveData()">プロジェクトを保存 (JSON)</button>
+        <button class="action-btn" onclick="clearCanvas()" style="background:#cc3333;">すべてクリア</button>
     </div>
-    <div class="help" style="margin-top:8px">
-      部屋を選択して「頂点を編集」。青い点をドラッグすると自由に形を変えられます。
-      辺をクリックすると頂点を追加できます。頂点を選択して「頂点を削除」も可能です。
-    </div>
-  </div>
-
-  <div class="section">
-    <span class="section-title">手すり・注釈</span>
-    <div class="grid2" style="margin-bottom:7px">
-      <div><label>番号 / 文字</label><input id="markerLabel" value="①"></div>
-      <div><label>色</label><select id="markerColor">
-        <option value="orange">オレンジ</option><option value="red">レッド</option>
-        <option value="blue">ブルー</option><option value="green">グリーン</option>
-      </select></div>
-    </div>
-    <div class="grid2">
-      <button class="tool" id="addMarker">＋ マーカー</button>
-      <button class="tool" id="addRail">＋ 手すり</button>
-    </div>
-  </div>
-
-  <div class="section">
-    <span class="section-title">選択中の操作</span>
-    <div class="small-actions">
-      <button class="tool" id="duplicateBtn">複製</button>
-      <button class="tool" id="deleteBtn">削除</button>
-    </div>
-  </div>
-
-  <div class="help">
-    <b>操作方法</b><br>
-    ・部屋やパーツはドラッグで移動<br>
-    ・右下の青い角で部屋のサイズ変更<br>
-    ・ダブルクリックでも削除<br>
-    ・線描画モードで手書き → 直線/弧に自動整形<br>
-    ・クリックで選択、Deleteキーでも削除<br>
-    ・Ctrl＋Zで元に戻す<br>
-    ・マウスホイールで図面をスクロール
-  </div>
-</aside>
-
-<main class="workspace">
-  <div class="toolbar">
-    <div class="toolbar-left"><span class="status" id="status">選択・移動モード</span></div>
-    <div class="toolbar-right">
-      <button class="btn" id="resetBtn">初期配置</button>
-    </div>
-  </div>
-  <div class="canvas-scroll">
-    <div class="paper" id="paper">
-      <div class="paper-head">
-        <div class="paper-title" id="titleDisplay">小田 義重様邸 図面</div>
-        <div class="paper-sub">FUKUSHI REFORM PLAN</div>
-      </div>
-      <div class="room-container select-mode" id="roomContainer">
-        <div class="empty-tip" id="emptyTip">左側から部屋・手すり等を追加できます</div>
-        <svg id="drawLayer"></svg>
-        <div id="shapeOverlay" class="shape-overlay"></div>
-      </div>
-      <div class="paper-foot"><span>福祉用具・住宅改修 申請提出用図面</span><span>縮尺：非縮尺（レイアウト確認用）</span></div>
-    </div>
-  </div>
-</main>
 </div>
-<div class="toast" id="toast"></div>
+
+<div id="main-area">
+    <div id="view-mode">
+        <button class="mode-btn active" id="btn2d" onclick="switchMode('2d')">2D</button>
+        <button class="mode-btn" id="btn3d" onclick="switchMode('3d')">3D</button>
+    </div>
+    <canvas id="editorCanvas" width="900" height="650"></canvas>
+    <div id="canvas3d"></div>
 </div>
 
 <script>
-const roomContainer=document.getElementById('roomContainer');
-const drawLayer=document.getElementById('drawLayer');
-const titleDisplay=document.getElementById('titleDisplay');
-const clientName=document.getElementById('clientName');
-const status=document.getElementById('status');
-const emptyTip=document.getElementById('emptyTip');
+    const canvas = document.getElementById('editorCanvas');
+    const ctx = canvas.getContext('2d');
+    const container3d = document.getElementById('canvas3d');
 
-let mode='select', selected=null, drawing=false, points=[], history=[], drag=null;
-let freeRoom=false, freeRoomPoints=[], freeRoomPreview=null;
-let zoom=1, panX=0, panY=0, pinch=null;
+    let currentTool = 'room';
+    let currentMode = '2d';
+    let elements = [];
+    let isDrawing = false;
+    let startX, startY;
+    let selectedElement = null;
+    let dragOffsetX, dragOffsetY;
 
-const initialRooms=[
- {name:'玄関',x:20,y:20,w:120,h:80},{name:'WC',x:145,y:20,w:100,h:80},
- {name:'脱衣場',x:250,y:20,w:100,h:80},{name:'風呂',x:355,y:20,w:100,h:80},
- {name:'廊下',x:20,y:105,w:435,h:60},{name:'和室/寝室',x:20,y:170,w:210,h:120},
- {name:'居間',x:235,y:170,w:220,h:120},{name:'台所',x:460,y:20,w:120,h:270}
-];
-const roomNames=['玄関','WC','脱衣場','風呂','廊下','居間','和室/寝室','台所'];
+    // Three.js variables
+    let scene, camera, renderer;
 
-function showToast(t){
- const el=document.getElementById('toast');el.textContent=t;el.classList.add('show');
- clearTimeout(showToast.timer);showToast.timer=setTimeout(()=>el.classList.remove('show'),1400);
-}
-function updateEmpty(){emptyTip.classList.toggle('hidden',roomContainer.querySelectorAll('.room-box,.marker,.rail').length>0)}
-function setMode(m){
- mode=m;
- document.getElementById('selectMode').classList.toggle('active',m==='select');
- document.getElementById('drawMode').classList.toggle('active',m==='draw');
- roomContainer.className='room-container '+(m==='draw'?'draw-mode':'select-mode');
- status.textContent=m==='draw'?'線描画モード：ドラッグして線を描きます':'選択・移動モード';
- if(m==='draw') clearSelection();
-}
-function snapshot(){
- history.push(roomContainer.innerHTML);
- if(history.length>30)history.shift();
-}
-function restore(html){
- roomContainer.innerHTML=html;
- bindAll();
- updateEmpty();
- clearSelection();
- renderShapeOverlay();
-}
-function undo(){
- if(!history.length){showToast('戻せる操作がありません');return}
- restore(history.pop());showToast('元に戻しました');
-}
-function clearSelection(){
- if(selected){selected.classList.remove('selected');selected=null}
- if(shapeEditing){shapeEditing=false;activeVertex=-1;polygonDrag=null}
- renderShapeOverlay();
-}
-function select(el){
- if(mode!=='select')return;
- clearSelection();selected=el;el.classList.add('selected'); if(el.classList.contains('room-box')) document.getElementById('roomNameInput').value=el.dataset.roomName||el.textContent.trim(); renderShapeOverlay();
-}
-function deleteSelected(){
- if(!selected){showToast('削除する要素を選択してください');return}
- snapshot();selected.remove();selected=null;updateEmpty();showToast('削除しました');
-}
-function makeDraggable(el,resize=false){
- el.addEventListener('pointerdown',e=>{
-   if(mode!=='select'||shapeEditing||(resize&&e.target!==el.querySelector('.resizer')))return;
-   if(!resize&&e.target.classList.contains('resizer'))return;
-   e.preventDefault();e.stopPropagation();select(el);
-   const r=roomContainer.getBoundingClientRect();
-   const sx=e.clientX,sy=e.clientY;
-   const ox=parseFloat(el.style.left)||0,oy=parseFloat(el.style.top)||0;
-   const ow=el.offsetWidth,oh=el.offsetHeight;
-   snapshot();
-   drag={el,sx,sy,ox,oy,ow,oh,resize};
-   el.setPointerCapture?.(e.pointerId);
- });
-}
-window.addEventListener('pointermove',e=>{
- if(!drag)return;
- const r=roomContainer.getBoundingClientRect();
- const dx=e.clientX-drag.sx,dy=e.clientY-drag.sy;
- if(drag.resize){
-   drag.el.style.width=Math.max(50,drag.ow+dx)+'px';
-   drag.el.style.height=Math.max(40,drag.oh+dy)+'px';
- }else{
-   const maxX=r.width-drag.el.offsetWidth,maxY=r.height-drag.el.offsetHeight;
-   drag.el.style.left=Math.max(0,Math.min(maxX,drag.ox+dx))+'px';
-   drag.el.style.top=Math.max(0,Math.min(maxY,drag.oy+dy))+'px';
- }
-});
-window.addEventListener('pointerup',()=>{
- if(drag){drag=null;updateEmpty();renderShapeOverlay()}
-});
+    function setTool(tool) {
+        currentTool = tool;
+        document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        selectedElement = null;
+        redraw();
+    }
 
-function addRoom(name,x=60,y=50,w=120,h=80){
- snapshot();createRoom(name,x,y,w,h);updateEmpty();showToast(name+'を追加しました');
-}
-function createRoom(name,x,y,w,h){
- const el=document.createElement('div');el.className='room-box';
- el.dataset.roomName=name;
- el.dataset.polygon=JSON.stringify([[0,0],[w,0],[w,h],[0,h]]);
- el.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px`;el.textContent=name;
- const rz=document.createElement('div');rz.className='resizer';el.appendChild(rz);
- el.addEventListener('click',e=>{e.stopPropagation();select(el)});
- el.addEventListener('dblclick',e=>{e.stopPropagation();snapshot();el.remove();clearSelection();updateEmpty()});
- makeDraggable(el);makeDraggable(el,true);roomContainer.appendChild(el);
-}
-function addMarker(){
- snapshot();
- const el=document.createElement('div');el.className='marker '+document.getElementById('markerColor').value;
- el.style.left='90px';el.style.top='90px';el.textContent=document.getElementById('markerLabel').value||'①';
- el.addEventListener('click',e=>{e.stopPropagation();select(el)});
- el.addEventListener('dblclick',e=>{e.stopPropagation();snapshot();el.remove();clearSelection();updateEmpty()});
- makeDraggable(el);roomContainer.appendChild(el);updateEmpty();
-}
-function addRail(){
- snapshot();
- const el=document.createElement('div');el.className='rail';el.style.left='120px';el.style.top='120px';el.style.width='100px';
- el.addEventListener('click',e=>{e.stopPropagation();select(el)});
- el.addEventListener('dblclick',e=>{e.stopPropagation();snapshot();el.remove();clearSelection();updateEmpty()});
- makeDraggable(el);roomContainer.appendChild(el);updateEmpty();
-}
-function bindAll(){
- roomContainer.querySelectorAll('#drawLayer path').forEach(path=>makePathSelectable(path));
- roomContainer.querySelectorAll('.room-box,.marker,.rail').forEach(el=>{
-   el.onclick=e=>{e.stopPropagation();select(el)};
-   if(!el.dataset.bound){
-     el.addEventListener('dblclick',e=>{e.stopPropagation();snapshot();el.remove();clearSelection();updateEmpty()});
-     makeDraggable(el);
-     if(el.classList.contains('room-box'))makeDraggable(el,true);
-     el.dataset.bound='1';
-   }
- });
-}
+    function switchMode(mode) {
+        currentMode = mode;
+        document.getElementById('btn2d').classList.toggle('active', mode === '2d');
+        document.getElementById('btn3d').classList.toggle('active', mode === '3d');
 
+        if (mode === '3d') {
+            canvas.style.display = 'none';
+            container3d.style.display = 'block';
+            init3D();
+        } else {
+            canvas.style.display = 'block';
+            container3d.style.display = 'none';
+            redraw();
+        }
+    }
 
-let shapeEditing=false;
-let activeVertex=-1;
-let polygonDrag=null;
+    // --- 2D Canvas Mouse Events ---
+    canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
 
-function getRoomPolygon(el){
-  if(!el.dataset.polygon){
-    const w=el.offsetWidth,h=el.offsetHeight;
-    el.dataset.polygon=JSON.stringify([[0,0],[w,0],[w,h],[0,h]]);
-  }
-  return JSON.parse(el.dataset.polygon);
-}
-function saveRoomPolygon(el, pts){
-  el.dataset.polygon=JSON.stringify(pts);
-  const maxX=Math.max(...pts.map(p=>p[0]),50), maxY=Math.max(...pts.map(p=>p[1]),40);
-  el.style.width=Math.max(50,maxX)+'px';
-  el.style.height=Math.max(40,maxY)+'px';
-  el.style.clipPath='polygon('+pts.map(p=>`${(p[0]/maxX)*100}% ${(p[1]/maxY)*100}%`).join(',')+')';
-}
-function ensureRoomPolygon(el){
-  const pts=getRoomPolygon(el);
-  saveRoomPolygon(el,pts);
-}
-function renderShapeOverlay(){
-  const overlay=document.getElementById('shapeOverlay');
-  overlay.innerHTML='';
-  if(!shapeEditing || !selected || !selected.classList.contains('room-box')) return;
+        if (currentTool === 'select') {
+            selectedElement = elements.slice().reverse().find(el => {
+                if (['room', 'furniture-bed', 'furniture-sofa', 'furniture-table'].includes(el.type)) {
+                    return x >= el.x && x <= el.x + el.w && y >= el.y && y <= el.y + el.h;
+                } else if (['wall', 'door', 'window'].includes(el.type)) {
+                    return distToSegment({x, y}, {x: el.x1, y: el.y1}, {x: el.x2, y: el.y2}) < 10;
+                }
+                return false;
+            });
+            if (selectedElement) {
+                dragOffsetX = x - (selectedElement.x || selectedElement.x1);
+                dragOffsetY = y - (selectedElement.y || selectedElement.y1);
+            }
+            redraw();
+            return;
+        }
 
-  const pts=getRoomPolygon(selected);
-  pts.forEach((p,i)=>{
-    const v=document.createElement('div');
-    v.className='vertex'+(i===activeVertex?' active':'');
-    v.style.left=(selected.offsetLeft+p[0])+'px';
-    v.style.top=(selected.offsetTop+p[1])+'px';
-    v.title=`頂点 ${i+1}`;
-    v.addEventListener('pointerdown',e=>{
-      e.preventDefault();e.stopPropagation();
-      activeVertex=i;
-      snapshot();
-      polygonDrag={index:i};
-      renderShapeOverlay();
+        isDrawing = true;
+        startX = x;
+        startY = y;
+
+        // ワンクリックで置けるオブジェクト
+        if (currentTool.startsWith('furniture-')) {
+            const fType = currentTool.split('-')[1];
+            const dims = fType === 'bed' ? {w:70, h:50, name:'ベッド'} : fType === 'sofa' ? {w:80, h:40, name:'ソファ'} : {w:60, h:60, name:'テーブル'};
+            elements.push({ type: currentTool, x: x - dims.w/2, y: y - dims.h/2, w: dims.w, h: dims.h, name: dims.name });
+            isDrawing = false;
+            redraw();
+        }
     });
-    overlay.appendChild(v);
-  });
-}
-window.addEventListener('pointermove',e=>{
-  if(!polygonDrag || !selected) return;
-  const r=roomContainer.getBoundingClientRect();
-  const x=Math.max(0,e.clientX-r.left-selected.offsetLeft);
-  const y=Math.max(0,e.clientY-r.top-selected.offsetTop);
-  const pts=getRoomPolygon(selected);
-  pts[polygonDrag.index]=[x,y];
-  saveRoomPolygon(selected,pts);
-  renderShapeOverlay();
-});
-window.addEventListener('pointerup',()=>{
-  if(polygonDrag){polygonDrag=null;activeVertex=-1;renderShapeOverlay()}
-});
 
-function editSelectedShape(){
-  if(!selected || !selected.classList.contains('room-box')){
-    showToast('形状を編集する部屋を選択してください');return;
-  }
-  shapeEditing=true;activeVertex=-1;
-  ensureRoomPolygon(selected);
-  renderShapeOverlay();
-  showToast('青い頂点をドラッグして形を変えられます');
-}
-function finishShapeEdit(){
-  shapeEditing=false;activeVertex=-1;polygonDrag=null;
-  renderShapeOverlay();
-  showToast('形状編集を終了しました');
-}
-function addPolygonVertex(){
-  if(!shapeEditing || !selected || !selected.classList.contains('room-box')){
-    showToast('先に「頂点を編集」を押してください');return;
-  }
-  const pts=getRoomPolygon(selected);
-  let best=-1,bestD=Infinity,bestPoint=null;
-  for(let i=0;i<pts.length;i++){
-    const a=pts[i],b=pts[(i+1)%pts.length];
-    const dx=b[0]-a[0],dy=b[1]-a[1],len2=dx*dx+dy*dy;
-    if(!len2)continue;
-    let t=((selected.offsetWidth/2-a[0])*dx+(selected.offsetHeight/2-a[1])*dy)/len2;
-    t=Math.max(0,Math.min(1,t));
-    const q=[a[0]+dx*t,a[1]+dy*t];
-    const d=(q[0]-selected.offsetWidth/2)**2+(q[1]-selected.offsetHeight/2)**2;
-    if(d<bestD){bestD=d;best=i;bestPoint=q}
-  }
-  if(best<0)return;
-  snapshot();
-  pts.splice(best+1,0,bestPoint);
-  saveRoomPolygon(selected,pts);
-  activeVertex=best+1;
-  renderShapeOverlay();
-  showToast('頂点を追加しました');
-}
-function deletePolygonVertex(){
-  if(!shapeEditing || !selected || !selected.classList.contains('room-box')){
-    showToast('先に「頂点を編集」を押してください');return;
-  }
-  const pts=getRoomPolygon(selected);
-  if(activeVertex<0){showToast('削除する頂点をクリックしてください');return}
-  if(pts.length<=3){showToast('3頂点未満にはできません');return}
-  snapshot();
-  pts.splice(activeVertex,1);
-  activeVertex=-1;
-  saveRoomPolygon(selected,pts);
-  renderShapeOverlay();
-  showToast('頂点を削除しました');
-}
-function addLine(points){
- const s=points[0],e=points[points.length-1];
- const dx=e.x-s.x,dy=e.y-s.y,len=Math.hypot(dx,dy);if(len<10)return;
- let max=0,far=s;
- points.forEach(p=>{
-   const d=Math.abs(dy*p.x-dx*p.y+e.x*s.y-e.y*s.x)/len;
-   if(d>max){max=d;far=p}
- });
- const path=document.createElementNS('http://www.w3.org/2000/svg','path');
- path.setAttribute('fill','none');path.setAttribute('stroke','#0f172a');path.setAttribute('stroke-width','2.5');
- path.setAttribute('stroke-linecap','round');
- path.setAttribute('d',max>len*.15?`M ${s.x} ${s.y} Q ${far.x} ${far.y} ${e.x} ${e.y}`:`M ${s.x} ${s.y} L ${e.x} ${e.y}`);
- path.style.pointerEvents='stroke';path.style.cursor='pointer';
- makePathSelectable(path);
- drawLayer.appendChild(path);
-}
-roomContainer.addEventListener('pointerdown',e=>{
- if(mode!=='draw'||e.target!==roomContainer)return;
- drawing=true;points=[];
- const r=roomContainer.getBoundingClientRect();points.push({x:e.clientX-r.left,y:e.clientY-r.top});
-});
-roomContainer.addEventListener('pointermove',e=>{
- if(!drawing)return;
- const r=roomContainer.getBoundingClientRect();points.push({x:e.clientX-r.left,y:e.clientY-r.top});
-});
-window.addEventListener('pointerup',()=>{
- if(!drawing)return;drawing=false;if(points.length>1){snapshot();addLine(points)}
- points=[];
-});
-roomContainer.addEventListener('click',e=>{
- if(mode==='select' && e.target===roomContainer) clearSelection();
-});
+    canvas.addEventListener('mousemove', (e) => {
+        if (!isDrawing && !selectedElement) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
 
-function applyCanvasTransform(){ const paper=document.getElementById('paper'); paper.style.transform=`translate(${panX}px,${panY}px) scale(${zoom})`; }
-function resetView(){zoom=1;panX=0;panY=0;applyCanvasTransform()}
-function distance(a,b){return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}
+        if (selectedElement && currentTool === 'select') {
+            if (selectedElement.x !== undefined) {
+                selectedElement.x = x - dragOffsetX;
+                selectedElement.y = y - dragOffsetY;
+            } else {
+                const dx = x - (selectedElement.x1 + dragOffsetX);
+                const dy = y - (selectedElement.y1 + dragOffsetY);
+                selectedElement.x1 += dx; selectedElement.y1 += dy;
+                selectedElement.x2 += dx; selectedElement.y2 += dy;
+                dragOffsetX = x - selectedElement.x1;
+                dragOffsetY = y - selectedElement.y1;
+            }
+            redraw();
+            return;
+        }
 
-function startFreeRoom(e){
- if(mode!=='select' || !freeRoom)return;
- e.preventDefault(); e.stopPropagation();
- const r=roomContainer.getBoundingClientRect();
- const x=e.clientX-r.left,y=e.clientY-r.top;
- if(freeRoomPoints.length>=3){
-   const first=freeRoomPoints[0]; if(Math.hypot(x-first.x,y-first.y)<18){finishFreeRoom();return}
- }
- freeRoomPoints.push({x,y});
- if(!freeRoomPreview){freeRoomPreview=document.createElementNS('http://www.w3.org/2000/svg','polyline');freeRoomPreview.setAttribute('fill','#2563eb22');freeRoomPreview.setAttribute('stroke','#2563eb');freeRoomPreview.setAttribute('stroke-width','2');freeRoomPreview.setAttribute('stroke-dasharray','6 4');drawLayer.appendChild(freeRoomPreview)}
- freeRoomPreview.setAttribute('points',freeRoomPoints.map(p=>`${p.x},${p.y}`).join(' '));
-}
-function finishFreeRoom(){
- if(freeRoomPoints.length<3){showToast('3点以上で部屋を作れます');return}
- const name='新しい部屋'; snapshot(); createRoom(name, Math.min(...freeRoomPoints.map(p=>p.x)), Math.min(...freeRoomPoints.map(p=>p.y)), Math.max(...freeRoomPoints.map(p=>p.x))-Math.min(...freeRoomPoints.map(p=>p.x)), Math.max(...freeRoomPoints.map(p=>p.y))-Math.min(...freeRoomPoints.map(p=>p.y)));
- const g=roomContainer.lastElementChild; const ox=parseFloat(g.style.left),oy=parseFloat(g.style.top); const pts=freeRoomPoints.map(p=>[p.x-ox,p.y-oy]); g.dataset.polygon=JSON.stringify(pts); const maxX=Math.max(...pts.map(p=>p[0]),50),maxY=Math.max(...pts.map(p=>p[1]),40); g.style.width=maxX+'px';g.style.height=maxY+'px';g.style.clipPath='polygon('+pts.map(p=>`${p[0]/maxX*100}% ${p[1]/maxY*100}%`).join(',')+')';
- if(freeRoomPreview)freeRoomPreview.remove();freeRoomPreview=null;freeRoomPoints=[];freeRoom=false;document.getElementById('freeRoomBtn').classList.remove('active');select(g);showToast('部屋を作成しました。名前を入力できます');
-}
-roomContainer.addEventListener('pointerdown',startFreeRoom);
-roomContainer.addEventListener('dblclick',e=>{if(freeRoom){e.preventDefault();finishFreeRoom()}});
+        redraw();
 
-const canvasScroll=document.querySelector('.canvas-scroll');
-canvasScroll.addEventListener('touchstart',e=>{if(e.touches.length===2){pinch={dist:distance(e.touches[0],e.touches[1]),zoom,panX,panY,mx:(e.touches[0].clientX+e.touches[1].clientX)/2,my:(e.touches[0].clientY+e.touches[1].clientY)/2};e.preventDefault()}},{passive:false});
-canvasScroll.addEventListener('touchmove',e=>{if(e.touches.length===2&&pinch){const d=distance(e.touches[0],e.touches[1]);zoom=Math.max(.5,Math.min(2.5,pinch.zoom*d/pinch.dist));const mx=(e.touches[0].clientX+e.touches[1].clientX)/2,my=(e.touches[0].clientY+e.touches[1].clientY)/2;panX=pinch.panX+(mx-pinch.mx);panY=pinch.panY+(my-pinch.my);applyCanvasTransform();e.preventDefault()}},{passive:false});
-canvasScroll.addEventListener('touchend',e=>{if(e.touches.length<2)pinch=null},{passive:false});
-clientName.addEventListener('input',()=>titleDisplay.textContent=clientName.value.trim()?clientName.value.trim()+'様邸 図面':'（お名前未入力）様邸 図面');
+        // 描画中のプレビュー線
+        ctx.strokeStyle = '#0066ff';
+        ctx.lineWidth = 2;
+        if (currentTool === 'room') {
+            ctx.strokeRect(startX, startY, x - startX, y - startY);
+        } else if (['wall', 'door', 'window'].includes(currentTool)) {
+            ctx.beginPath(); ctx.moveTo(startX, startY); ctx.lineTo(x, y); ctx.stroke();
+        }
+    });
 
-document.getElementById('selectMode').onclick=()=>setMode('select');
-document.getElementById('drawMode').onclick=()=>setMode('draw');
-document.getElementById('undoBtn').onclick=undo;
-document.getElementById('deleteBtn').onclick=deleteSelected;
-document.getElementById('clearBtn').onclick=()=>{
- if(!confirm('図面上の部屋・パーツ・線をすべて削除しますか？'))return;
- snapshot();roomContainer.querySelectorAll('.room-box,.marker,.rail').forEach(e=>e.remove());drawLayer.innerHTML='';clearSelection();updateEmpty();
-};
-document.getElementById('printBtn').onclick=()=>{const paper=document.getElementById('paper');const old=paper.style.transform;paper.style.transform='none';window.print();setTimeout(()=>paper.style.transform=old,500)};
-document.getElementById('addMarker').onclick=addMarker;
-document.getElementById('addRail').onclick=addRail;
-document.getElementById('customAdd').onclick=()=>{
- const input=document.getElementById('customRoomName'),name=input.value.trim();if(!name)return;
- addRoom(name);input.value='';
-};
-document.getElementById('duplicateBtn').onclick=()=>{
- if(!selected || selected.namespaceURI==='http://www.w3.org/2000/svg'){
- showToast('複製できるのは部屋・マーカー・手すりです');return}
- snapshot();const copy=selected.cloneNode(true);copy.style.left=(parseFloat(selected.style.left||0)+20)+'px';copy.style.top=(parseFloat(selected.style.top||0)+20)+'px';
- copy.classList.remove('selected');copy.dataset.bound='';selected=copy;roomContainer.appendChild(copy);bindAll();select(copy);
-};
-document.getElementById('resetBtn').onclick=()=>{
- snapshot();drawLayer.innerHTML='';roomContainer.querySelectorAll('.room-box,.marker,.rail').forEach(e=>e.remove());
- initialRooms.forEach(r=>createRoom(r.name,r.x,r.y,r.w,r.h));updateEmpty();applyCanvasTransform();showToast('初期配置に戻しました');
-};
-document.getElementById('editShapeBtn').onclick=editSelectedShape;
-document.getElementById('addVertexBtn').onclick=addPolygonVertex;
-document.getElementById('deleteVertexBtn').onclick=deletePolygonVertex;
-document.getElementById('finishShapeBtn').onclick=finishShapeEdit;
+    canvas.addEventListener('mouseup', (e) => {
+        if (selectedElement) { selectedElement = null; }
+        if (!isDrawing) return;
+        isDrawing = false;
 
-document.getElementById('freeRoomBtn').onclick=()=>{freeRoom=!freeRoom;freeRoomPoints=[];if(freeRoomPreview){freeRoomPreview.remove();freeRoomPreview=null}document.getElementById('freeRoomBtn').classList.toggle('active',freeRoom);showToast(freeRoom?'図面上をタップして部屋を描いてください':'自由描画を終了しました')};
-document.getElementById('renameRoomBtn').onclick=()=>{if(!selected||!selected.classList.contains('room-box')){showToast('名前を変更する部屋を選択してください');return}const n=document.getElementById('roomNameInput').value.trim();if(!n){showToast('部屋名を入力してください');return}snapshot();selected.dataset.roomName=n;selected.childNodes[0].nodeValue=n;showToast('部屋名を変更しました')};
-document.getElementById('menuBtn').onclick=()=>document.querySelector('.sidebar').classList.toggle('open');
-document.getElementById('mSelect').onclick=()=>{setMode('select');document.getElementById('mSelect').classList.add('active');document.getElementById('mDraw').classList.remove('active');};
-document.getElementById('mDraw').onclick=()=>{setMode('draw');document.getElementById('mDraw').classList.add('active');document.getElementById('mSelect').classList.remove('active');};
-document.getElementById('mRoom').onclick=()=>document.getElementById('freeRoomBtn').click();
-document.getElementById('mDelete').onclick=deleteSelected;
-document.addEventListener('keydown',e=>{
- if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undo()}
- if(e.key==='Delete'||e.key==='Backspace'){if(document.activeElement.tagName!=='INPUT'&&document.activeElement.tagName!=='SELECT')deleteSelected()}
-});
+        const rect = canvas.getBoundingClientRect();
+        const endX = e.clientX - rect.left;
+        const endY = e.clientY - rect.top;
 
-roomNames.forEach(name=>{
- const b=document.createElement('button');b.className='tool';b.textContent='＋ '+name;b.onclick=()=>addRoom(name);document.getElementById('roomButtons').appendChild(b);
-});
-initialRooms.forEach(r=>createRoom(r.name,r.x,r.y,r.w,r.h));updateEmpty();applyCanvasTransform();
+        if (startX === endX && startY === endY) return;
+
+        if (currentTool === 'room') {
+            elements.push({
+                type: 'room',
+                x: Math.min(startX, endX), y: Math.min(startY, endY),
+                w: Math.abs(endX - startX), h: Math.abs(endY - startY)
+            });
+        } else if (['wall', 'door', 'window'].includes(currentTool)) {
+            elements.push({
+                type: currentTool,
+                x1: startX, y1: startY, x2: endX, y2: endY
+            });
+        }
+        redraw();
+    });
+
+    function redraw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // グリッド線
+        ctx.strokeStyle = '#f2f2f2';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < canvas.width; i += 25) {
+            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+        }
+
+        // 要素描画
+        elements.forEach(el => {
+            ctx.save();
+            const isSel = (el === selectedElement);
+            ctx.lineWidth = isSel ? 3 : 2;
+            ctx.strokeStyle = isSel ? '#ff3300' : '#333';
+
+            if (el.type === 'room') {
+                ctx.fillStyle = isSel ? 'rgba(255,51,0,0.1)' : 'rgba(0,102,255,0.04)';
+                ctx.fillRect(el.x, el.y, el.w, el.h);
+                ctx.strokeRect(el.x, el.y, el.w, el.h);
+                ctx.fillStyle = '#666'; ctx.font = '11px sans-serif';
+                ctx.fillText('Room', el.x + 6, el.y + 16);
+            } else if (el.type === 'wall') {
+                ctx.lineWidth = isSel ? 5 : 4;
+                ctx.strokeStyle = isSel ? '#ff3300' : '#222';
+                ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
+            } else if (el.type === 'door') {
+                ctx.strokeStyle = isSel ? '#ff3300' : '#cc6600';
+                ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
+            } else if (el.type === 'window') {
+                ctx.strokeStyle = isSel ? '#ff3300' : '#00aaff';
+                ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
+            } else if (el.type.startsWith('furniture-')) {
+                ctx.fillStyle = isSel ? '#ff3300' : '#777';
+                ctx.fillRect(el.x, el.y, el.w, el.h);
+                ctx.fillStyle = '#fff'; ctx.font = '10px sans-serif';
+                ctx.fillText(el.name, el.x + 4, el.y + 18);
+            }
+            ctx.restore();
+        });
+    }
+
+    // --- 3D Preview with Three.js ---
+    function init3D() {
+        container3d.innerHTML = '';
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f4f8);
+
+        camera = new THREE.PerspectiveCamera(45, container3d.clientWidth / container3d.clientHeight, 1, 2000);
+        camera.position.set(450, 500, 500);
+        camera.lookAt(450, 0, 325);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container3d.clientWidth, container3d.clientHeight);
+        container3d.appendChild(renderer.domElement);
+
+        // ライト
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        dirLight.position.set(200, 400, 300);
+        scene.add(dirLight);
+
+        // 床面グリッド
+        const grid = new THREE.GridHelper(1000, 40, 0xcccccc, 0xe5e5e5);
+        grid.position.set(450, 0, 325);
+        scene.add(grid);
+
+        // 要素を3Dオブジェクトに変換して配置
+        elements.forEach(el => {
+            if (el.type === 'room') {
+                const geo = new THREE.BoxGeometry(el.w, 2, el.h);
+                const mat = new THREE.MeshLambertMaterial({ color: 0xdddddd });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(el.x + el.w/2, 1, el.y + el.h/2);
+                scene.add(mesh);
+            } else if (el.type === 'wall') {
+                const dx = el.x2 - el.x1;
+                const dz = el.y2 - el.y1;
+                const len = Math.sqrt(dx*dx + dz*dz);
+                const angle = Math.atan2(dz, dx);
+
+                const geo = new THREE.BoxGeometry(len, 60, 6);
+                const mat = new THREE.MeshLambertMaterial({ color: 0x555555 });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set((el.x1 + el.x2)/2, 30, (el.y1 + el.y2)/2);
+                mesh.rotation.y = -angle;
+                scene.add(mesh);
+            } else if (el.type.startsWith('furniture-')) {
+                const geo = new THREE.BoxGeometry(el.w, 30, el.h);
+                const color = el.type.includes('bed') ? 0x3366cc : el.type.includes('sofa') ? 0xcc6633 : 0x66aa66;
+                const mat = new THREE.MeshLambertMaterial({ color: color });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(el.x + el.w/2, 15, el.y + el.h/2);
+                scene.add(mesh);
+            }
+        });
+
+        renderer.render(scene, camera);
+    }
+
+    function clearCanvas() {
+        if (confirm('すべての内容をリセットしますか？')) {
+            elements = [];
+            redraw();
+        }
+    }
+
+    function saveData() {
+        const jsonStr = JSON.stringify(elements, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'floorplan-project.json'; a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function distToSegment(p, v, w) {
+        const l2 = (w.x - v.x)**2 + (w.y - v.y)**2;
+        if (l2 === 0) return Math.hypot(p.x - v.x, p.y - v.y);
+        let t = ((p.x - v.x)*(w.x - v.x) + (p.y - v.y)*(w.y - v.y)) / l2;
+        t = Math.max(0, Math.min(1, t));
+        return Math.hypot(p.x - (v.x + t*(w.x - v.x)), p.y - (v.y + t*(w.y - v.y)));
+    }
+
+    redraw();
 </script>
+
 </body>
 </html>
