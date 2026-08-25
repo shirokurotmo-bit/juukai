@@ -2,410 +2,294 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>マイ間取りエディタ（完全版）</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            margin: 0;
-            display: flex;
-            height: 100vh;
-            background: #f0f2f5;
-            overflow: hidden;
-        }
-        #sidebar {
-            width: 260px;
-            background: #fff;
-            border-right: 1px solid #ddd;
-            padding: 20px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            z-index: 10;
-        }
-        h2 { font-size: 16px; margin: 0 0 10px 0; color: #333; }
-        .section-title { font-size: 12px; color: #888; margin-top: 10px; font-weight: bold; }
-        .tool-btn {
-            padding: 10px;
-            background: #fff;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            cursor: pointer;
-            text-align: left;
-            font-size: 13px;
-            transition: all 0.2s;
-        }
-        .tool-btn.active {
-            background: #0066ff;
-            color: #fff;
-            border-color: #0052cc;
-        }
-        #main-area {
-            flex-grow: 1;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        canvas {
-            background: #fff;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            cursor: crosshair;
-        }
-        #view-mode {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: #fff;
-            padding: 5px;
-            border-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            display: flex;
-            gap: 5px;
-            z-index: 10;
-        }
-        .mode-btn {
-            padding: 6px 14px;
-            border: none;
-            background: #f0f0f0;
-            cursor: pointer;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-        .mode-btn.active {
-            background: #0066ff;
-            color: #fff;
-        }
-        .actions {
-            margin-top: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .action-btn {
-            padding: 10px;
-            background: #333;
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-        }
-        .action-btn:hover { background: #444; }
-        #canvas3d {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            display: none;
-            background: #e0e8f0;
-        }
-    </style>
-    <!-- Three.js CDN for 3D View -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floorplanner Pro</title>
+
+    <link rel="stylesheet" href="style.css">
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
+
 <body>
 
-<div id="sidebar">
-    <h2>間取りエディタ</h2>
-    
-    <div class="section-title">建築 (Build)</div>
-    <button class="tool-btn active" onclick="setTool('room')">■ Draw Room (部屋)</button>
-    <button class="tool-btn" onclick="setTool('wall')">╱ Draw Wall (壁)</button>
+<div id="app">
 
-    <div class="section-title">設備・開口部</div>
-    <button class="tool-btn" onclick="setTool('door')">🚪 Place Door (ドア)</button>
-    <button class="tool-btn" onclick="setTool('window')">🪟 Place Window (窓)</button>
+    <aside id="sidebar">
 
-    <div class="section-title">オブジェクト (Objects)</div>
-    <button class="tool-btn" onclick="setTool('furniture-bed')">🛏️ ベッド</button>
-    <button class="tool-btn" onclick="setTool('furniture-sofa')">🛋️ ソファ</button>
-    <button class="tool-btn" onclick="setTool('furniture-table')">🪑 テーブル</button>
+        <div class="sidebar-header">
+            <div class="brand-logo">
+                <span></span>
+            </div>
+            <div>
+                <strong>Floorplanner Pro</strong>
+                <small>住宅環境図作成</small>
+            </div>
+        </div>
 
-    <div class="section-title">操作</div>
-    <button class="tool-btn" onclick="setTool('select')">✋ 選択・移動</button>
+        <div class="tool-scroll">
 
-    <div class="actions">
-        <button class="action-btn" onclick="saveData()">プロジェクトを保存 (JSON)</button>
-        <button class="action-btn" onclick="clearCanvas()" style="background:#cc3333;">すべてクリア</button>
-    </div>
+            <div class="menu-section-title">BUILD</div>
+
+            <button class="menu-item active" data-tool="select" onclick="setTool('select')">
+                <span class="tool-icon select-icon"></span>
+                <span>選択・移動</span>
+                <kbd>V</kbd>
+            </button>
+
+            <button class="menu-item" data-tool="room" onclick="setTool('room')">
+                <span class="tool-icon room-icon"></span>
+                <span>部屋を作成</span>
+                <kbd>R</kbd>
+            </button>
+
+            <button class="menu-item" data-tool="wall" onclick="setTool('wall')">
+                <span class="tool-icon wall-icon"></span>
+                <span>壁を描く</span>
+                <kbd>W</kbd>
+            </button>
+
+            <button class="menu-item" data-tool="door" onclick="setTool('door')">
+                <span class="tool-icon door-icon"></span>
+                <span>ドア</span>
+                <kbd>D</kbd>
+            </button>
+
+            <button class="menu-item" data-tool="window" onclick="setTool('window')">
+                <span class="tool-icon window-icon"></span>
+                <span>窓</span>
+                <kbd>N</kbd>
+            </button>
+
+            <div class="menu-section-title">家具</div>
+
+            <button class="menu-item" data-tool="bed" onclick="setTool('bed')">
+                <span class="tool-icon bed-icon"></span>
+                <span>ベッド</span>
+            </button>
+
+            <button class="menu-item" data-tool="sofa" onclick="setTool('sofa')">
+                <span class="tool-icon sofa-icon"></span>
+                <span>ソファ</span>
+            </button>
+
+            <button class="menu-item" data-tool="table" onclick="setTool('table')">
+                <span class="tool-icon table-icon"></span>
+                <span>テーブル</span>
+            </button>
+
+            <button class="menu-item" data-tool="wheelchair" onclick="setTool('wheelchair')">
+                <span class="tool-icon wheelchair-icon"></span>
+                <span>車椅子</span>
+            </button>
+
+            <button class="menu-item" data-tool="marker" onclick="setTool('marker')">
+                <span class="tool-icon marker-icon"></span>
+                <span>注意マーカー</span>
+            </button>
+
+            <div class="menu-section-title">操作</div>
+
+            <div class="history-buttons">
+                <button id="undoBtn" class="history-btn" onclick="undo()" title="元に戻す">
+                    ↶ <span>戻す</span>
+                </button>
+                <button id="redoBtn" class="history-btn" onclick="redo()" title="やり直す">
+                    ↷ <span>進む</span>
+                </button>
+            </div>
+
+            <button class="menu-item utility-item" onclick="duplicateSelected()">
+                <span>＋</span>
+                <span>複製</span>
+                <kbd>Ctrl+D</kbd>
+            </button>
+
+            <button class="menu-item utility-item" onclick="deleteSelected()">
+                <span>×</span>
+                <span>削除</span>
+                <kbd>Del</kbd>
+            </button>
+
+            <div class="menu-section-title">プロジェクト</div>
+
+            <div class="side-actions">
+                <button class="action-btn save-btn" onclick="saveProject()">
+                    JSONを書き出す
+                </button>
+
+                <button class="action-btn load-btn" onclick="document.getElementById('fileInput').click()">
+                    JSONを読み込む
+                </button>
+
+                <button class="action-btn clear-btn" onclick="clearAll()">
+                    新規図面
+                </button>
+
+                <input type="file" id="fileInput" accept=".json" hidden>
+            </div>
+
+        </div>
+
+        <div class="sidebar-footer">
+            <span id="saveStatus">保存済み</span>
+            <span id="version">v2.0</span>
+        </div>
+
+    </aside>
+
+
+    <main id="main-container">
+
+        <header class="top-bar">
+
+            <div class="project-info">
+
+                <div class="project-name-area">
+                    <span class="project-label">PROJECT</span>
+
+                    <input
+                        id="projectName"
+                        class="project-name-input"
+                        value="新規住宅環境図"
+                        onchange="updateProjectName(this.value)"
+                    >
+                </div>
+
+                <div class="separator"></div>
+
+                <div class="stats">
+                    <span id="statsArea">面積 0.0 m²</span>
+                    <span id="statsObjects">0 オブジェクト</span>
+                </div>
+
+            </div>
+
+
+            <div class="top-actions">
+
+                <div class="view-switch">
+                    <button id="btn2d" class="view-btn active" onclick="switchView('2d')">
+                        2D
+                    </button>
+
+                    <button id="btn3d" class="view-btn" onclick="switchView('3d')">
+                        3D
+                    </button>
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <section id="workspace">
+
+            <div id="viewport">
+
+                <canvas id="c2d"></canvas>
+
+                <div id="canvas3d"></div>
+
+                <div class="floating-toolbar">
+
+                    <button
+                        class="float-btn active"
+                        id="gridBtn"
+                        onclick="toggleGrid()"
+                        title="グリッド表示"
+                    >
+                        <span>▦</span>
+                    </button>
+
+                    <button
+                        class="float-btn active"
+                        id="snapBtn"
+                        onclick="toggleSnap()"
+                        title="グリッド吸着"
+                    >
+                        <span>⌗</span>
+                    </button>
+
+                    <div class="toolbar-divider"></div>
+
+                    <button class="float-btn" onclick="zoomIn()" title="拡大">
+                        ＋
+                    </button>
+
+                    <button class="zoom-label" id="zoomLabel" onclick="resetView()">
+                        100%
+                    </button>
+
+                    <button class="float-btn" onclick="zoomOut()" title="縮小">
+                        −
+                    </button>
+
+                    <div class="toolbar-divider"></div>
+
+                    <button class="float-btn" onclick="resetView()" title="表示をリセット">
+                        ⌂
+                    </button>
+
+                </div>
+
+
+                <div class="hint-bar">
+                    <span id="toolHint">オブジェクトをクリックして選択・移動</span>
+                </div>
+
+
+                <div id="emptyState" class="empty-state">
+                    <div class="empty-icon">⌗</div>
+                    <strong>図面を作成</strong>
+                    <span>左側のツールから部屋や家具を配置してください</span>
+                </div>
+
+            </div>
+
+
+            <aside id="propertiesPanel" class="properties-panel hidden">
+
+                <div class="properties-header">
+                    <div>
+                        <span class="properties-label">PROPERTIES</span>
+                        <h3 id="propertyTitle">オブジェクト</h3>
+                    </div>
+
+                    <button onclick="clearSelection()" class="close-property">×</button>
+                </div>
+
+
+                <div id="propertyContent"></div>
+
+            </aside>
+
+        </section>
+
+
+        <footer class="bottom-bar">
+
+            <div class="bottom-left">
+                <span id="cursorPosition">X: 0.00m　Y: 0.00m</span>
+            </div>
+
+            <div class="bottom-center">
+                <span>Shift：水平・垂直固定</span>
+                <span>Ctrl：スナップ無効</span>
+                <span>Space：パン</span>
+            </div>
+
+            <div class="bottom-right">
+                <span id="currentToolLabel">選択</span>
+            </div>
+
+        </footer>
+
+    </main>
+
 </div>
 
-<div id="main-area">
-    <div id="view-mode">
-        <button class="mode-btn active" id="btn2d" onclick="switchMode('2d')">2D</button>
-        <button class="mode-btn" id="btn3d" onclick="switchMode('3d')">3D</button>
-    </div>
-    <canvas id="editorCanvas" width="900" height="650"></canvas>
-    <div id="canvas3d"></div>
-</div>
 
-<script>
-    const canvas = document.getElementById('editorCanvas');
-    const ctx = canvas.getContext('2d');
-    const container3d = document.getElementById('canvas3d');
-
-    let currentTool = 'room';
-    let currentMode = '2d';
-    let elements = [];
-    let isDrawing = false;
-    let startX, startY;
-    let selectedElement = null;
-    let dragOffsetX, dragOffsetY;
-
-    // Three.js variables
-    let scene, camera, renderer;
-
-    function setTool(tool) {
-        currentTool = tool;
-        document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-        event.target.classList.add('active');
-        selectedElement = null;
-        redraw();
-    }
-
-    function switchMode(mode) {
-        currentMode = mode;
-        document.getElementById('btn2d').classList.toggle('active', mode === '2d');
-        document.getElementById('btn3d').classList.toggle('active', mode === '3d');
-
-        if (mode === '3d') {
-            canvas.style.display = 'none';
-            container3d.style.display = 'block';
-            init3D();
-        } else {
-            canvas.style.display = 'block';
-            container3d.style.display = 'none';
-            redraw();
-        }
-    }
-
-    // --- 2D Canvas Mouse Events ---
-    canvas.addEventListener('mousedown', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        if (currentTool === 'select') {
-            selectedElement = elements.slice().reverse().find(el => {
-                if (['room', 'furniture-bed', 'furniture-sofa', 'furniture-table'].includes(el.type)) {
-                    return x >= el.x && x <= el.x + el.w && y >= el.y && y <= el.y + el.h;
-                } else if (['wall', 'door', 'window'].includes(el.type)) {
-                    return distToSegment({x, y}, {x: el.x1, y: el.y1}, {x: el.x2, y: el.y2}) < 10;
-                }
-                return false;
-            });
-            if (selectedElement) {
-                dragOffsetX = x - (selectedElement.x || selectedElement.x1);
-                dragOffsetY = y - (selectedElement.y || selectedElement.y1);
-            }
-            redraw();
-            return;
-        }
-
-        isDrawing = true;
-        startX = x;
-        startY = y;
-
-        // ワンクリックで置けるオブジェクト
-        if (currentTool.startsWith('furniture-')) {
-            const fType = currentTool.split('-')[1];
-            const dims = fType === 'bed' ? {w:70, h:50, name:'ベッド'} : fType === 'sofa' ? {w:80, h:40, name:'ソファ'} : {w:60, h:60, name:'テーブル'};
-            elements.push({ type: currentTool, x: x - dims.w/2, y: y - dims.h/2, w: dims.w, h: dims.h, name: dims.name });
-            isDrawing = false;
-            redraw();
-        }
-    });
-
-    canvas.addEventListener('mousemove', (e) => {
-        if (!isDrawing && !selectedElement) return;
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        if (selectedElement && currentTool === 'select') {
-            if (selectedElement.x !== undefined) {
-                selectedElement.x = x - dragOffsetX;
-                selectedElement.y = y - dragOffsetY;
-            } else {
-                const dx = x - (selectedElement.x1 + dragOffsetX);
-                const dy = y - (selectedElement.y1 + dragOffsetY);
-                selectedElement.x1 += dx; selectedElement.y1 += dy;
-                selectedElement.x2 += dx; selectedElement.y2 += dy;
-                dragOffsetX = x - selectedElement.x1;
-                dragOffsetY = y - selectedElement.y1;
-            }
-            redraw();
-            return;
-        }
-
-        redraw();
-
-        // 描画中のプレビュー線
-        ctx.strokeStyle = '#0066ff';
-        ctx.lineWidth = 2;
-        if (currentTool === 'room') {
-            ctx.strokeRect(startX, startY, x - startX, y - startY);
-        } else if (['wall', 'door', 'window'].includes(currentTool)) {
-            ctx.beginPath(); ctx.moveTo(startX, startY); ctx.lineTo(x, y); ctx.stroke();
-        }
-    });
-
-    canvas.addEventListener('mouseup', (e) => {
-        if (selectedElement) { selectedElement = null; }
-        if (!isDrawing) return;
-        isDrawing = false;
-
-        const rect = canvas.getBoundingClientRect();
-        const endX = e.clientX - rect.left;
-        const endY = e.clientY - rect.top;
-
-        if (startX === endX && startY === endY) return;
-
-        if (currentTool === 'room') {
-            elements.push({
-                type: 'room',
-                x: Math.min(startX, endX), y: Math.min(startY, endY),
-                w: Math.abs(endX - startX), h: Math.abs(endY - startY)
-            });
-        } else if (['wall', 'door', 'window'].includes(currentTool)) {
-            elements.push({
-                type: currentTool,
-                x1: startX, y1: startY, x2: endX, y2: endY
-            });
-        }
-        redraw();
-    });
-
-    function redraw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // グリッド線
-        ctx.strokeStyle = '#f2f2f2';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < canvas.width; i += 25) {
-            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
-        }
-
-        // 要素描画
-        elements.forEach(el => {
-            ctx.save();
-            const isSel = (el === selectedElement);
-            ctx.lineWidth = isSel ? 3 : 2;
-            ctx.strokeStyle = isSel ? '#ff3300' : '#333';
-
-            if (el.type === 'room') {
-                ctx.fillStyle = isSel ? 'rgba(255,51,0,0.1)' : 'rgba(0,102,255,0.04)';
-                ctx.fillRect(el.x, el.y, el.w, el.h);
-                ctx.strokeRect(el.x, el.y, el.w, el.h);
-                ctx.fillStyle = '#666'; ctx.font = '11px sans-serif';
-                ctx.fillText('Room', el.x + 6, el.y + 16);
-            } else if (el.type === 'wall') {
-                ctx.lineWidth = isSel ? 5 : 4;
-                ctx.strokeStyle = isSel ? '#ff3300' : '#222';
-                ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
-            } else if (el.type === 'door') {
-                ctx.strokeStyle = isSel ? '#ff3300' : '#cc6600';
-                ctx.lineWidth = 3;
-                ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
-            } else if (el.type === 'window') {
-                ctx.strokeStyle = isSel ? '#ff3300' : '#00aaff';
-                ctx.lineWidth = 3;
-                ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
-            } else if (el.type.startsWith('furniture-')) {
-                ctx.fillStyle = isSel ? '#ff3300' : '#777';
-                ctx.fillRect(el.x, el.y, el.w, el.h);
-                ctx.fillStyle = '#fff'; ctx.font = '10px sans-serif';
-                ctx.fillText(el.name, el.x + 4, el.y + 18);
-            }
-            ctx.restore();
-        });
-    }
-
-    // --- 3D Preview with Three.js ---
-    function init3D() {
-        container3d.innerHTML = '';
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xf0f4f8);
-
-        camera = new THREE.PerspectiveCamera(45, container3d.clientWidth / container3d.clientHeight, 1, 2000);
-        camera.position.set(450, 500, 500);
-        camera.lookAt(450, 0, 325);
-
-        renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(container3d.clientWidth, container3d.clientHeight);
-        container3d.appendChild(renderer.domElement);
-
-        // ライト
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-        scene.add(ambientLight);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
-        dirLight.position.set(200, 400, 300);
-        scene.add(dirLight);
-
-        // 床面グリッド
-        const grid = new THREE.GridHelper(1000, 40, 0xcccccc, 0xe5e5e5);
-        grid.position.set(450, 0, 325);
-        scene.add(grid);
-
-        // 要素を3Dオブジェクトに変換して配置
-        elements.forEach(el => {
-            if (el.type === 'room') {
-                const geo = new THREE.BoxGeometry(el.w, 2, el.h);
-                const mat = new THREE.MeshLambertMaterial({ color: 0xdddddd });
-                const mesh = new THREE.Mesh(geo, mat);
-                mesh.position.set(el.x + el.w/2, 1, el.y + el.h/2);
-                scene.add(mesh);
-            } else if (el.type === 'wall') {
-                const dx = el.x2 - el.x1;
-                const dz = el.y2 - el.y1;
-                const len = Math.sqrt(dx*dx + dz*dz);
-                const angle = Math.atan2(dz, dx);
-
-                const geo = new THREE.BoxGeometry(len, 60, 6);
-                const mat = new THREE.MeshLambertMaterial({ color: 0x555555 });
-                const mesh = new THREE.Mesh(geo, mat);
-                mesh.position.set((el.x1 + el.x2)/2, 30, (el.y1 + el.y2)/2);
-                mesh.rotation.y = -angle;
-                scene.add(mesh);
-            } else if (el.type.startsWith('furniture-')) {
-                const geo = new THREE.BoxGeometry(el.w, 30, el.h);
-                const color = el.type.includes('bed') ? 0x3366cc : el.type.includes('sofa') ? 0xcc6633 : 0x66aa66;
-                const mat = new THREE.MeshLambertMaterial({ color: color });
-                const mesh = new THREE.Mesh(geo, mat);
-                mesh.position.set(el.x + el.w/2, 15, el.y + el.h/2);
-                scene.add(mesh);
-            }
-        });
-
-        renderer.render(scene, camera);
-    }
-
-    function clearCanvas() {
-        if (confirm('すべての内容をリセットしますか？')) {
-            elements = [];
-            redraw();
-        }
-    }
-
-    function saveData() {
-        const jsonStr = JSON.stringify(elements, null, 2);
-        const blob = new Blob([jsonStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = 'floorplan-project.json'; a.click();
-        URL.revokeObjectURL(url);
-    }
-
-    function distToSegment(p, v, w) {
-        const l2 = (w.x - v.x)**2 + (w.y - v.y)**2;
-        if (l2 === 0) return Math.hypot(p.x - v.x, p.y - v.y);
-        let t = ((p.x - v.x)*(w.x - v.x) + (p.y - v.y)*(w.y - v.y)) / l2;
-        t = Math.max(0, Math.min(1, t));
-        return Math.hypot(p.x - (v.x + t*(w.x - v.x)), p.y - (v.y + t*(w.y - v.y)));
-    }
-
-    redraw();
-</script>
+<script src="app.js"></script>
 
 </body>
 </html>
