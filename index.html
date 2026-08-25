@@ -2,7 +2,12 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+
+    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
     <title>Floorplanner Pro</title>
 
     <link rel="stylesheet" href="style.css">
@@ -15,164 +20,108 @@
 <div id="app">
 
     <aside id="sidebar">
-
         <div class="sidebar-header">
-            <div class="brand-logo">
-                <span></span>
-            </div>
+            <div class="brand-logo"></div>
             <div>
                 <strong>Floorplanner Pro</strong>
-                <small>住宅環境図作成</small>
+                <span>Architecture Studio</span>
             </div>
         </div>
 
-        <div class="tool-scroll">
+        <div class="menu-list">
 
-            <div class="menu-section-title">BUILD</div>
+            <div class="menu-section-title">Build</div>
 
-            <button class="menu-item active" data-tool="select" onclick="setTool('select')">
-                <span class="tool-icon select-icon"></span>
-                <span>選択・移動</span>
-                <kbd>V</kbd>
+            <button class="menu-item active" data-tool="room">
+                <i class="icon-shape icon-room"></i>
+                <span>Draw Room</span>
             </button>
 
-            <button class="menu-item" data-tool="room" onclick="setTool('room')">
-                <span class="tool-icon room-icon"></span>
-                <span>部屋を作成</span>
-                <kbd>R</kbd>
+            <button class="menu-item" data-tool="wall">
+                <i class="icon-shape icon-wall"></i>
+                <span>Draw Wall</span>
             </button>
 
-            <button class="menu-item" data-tool="wall" onclick="setTool('wall')">
-                <span class="tool-icon wall-icon"></span>
-                <span>壁を描く</span>
-                <kbd>W</kbd>
+            <button class="menu-item" data-tool="door">
+                <i class="icon-shape icon-door"></i>
+                <span>Place Doors</span>
             </button>
 
-            <button class="menu-item" data-tool="door" onclick="setTool('door')">
-                <span class="tool-icon door-icon"></span>
-                <span>ドア</span>
-                <kbd>D</kbd>
+            <button class="menu-item" data-tool="window">
+                <i class="icon-shape icon-window"></i>
+                <span>Place Windows</span>
             </button>
 
-            <button class="menu-item" data-tool="window" onclick="setTool('window')">
-                <span class="tool-icon window-icon"></span>
-                <span>窓</span>
-                <kbd>N</kbd>
+            <div class="menu-section-title">Objects</div>
+
+            <button class="menu-item" data-tool="bed">
+                <i class="icon-shape icon-bed"></i>
+                <span>Bed</span>
             </button>
 
-            <div class="menu-section-title">家具</div>
-
-            <button class="menu-item" data-tool="bed" onclick="setTool('bed')">
-                <span class="tool-icon bed-icon"></span>
-                <span>ベッド</span>
+            <button class="menu-item" data-tool="sofa">
+                <i class="icon-shape icon-sofa"></i>
+                <span>Sofa</span>
             </button>
 
-            <button class="menu-item" data-tool="sofa" onclick="setTool('sofa')">
-                <span class="tool-icon sofa-icon"></span>
-                <span>ソファ</span>
+            <button class="menu-item" data-tool="table">
+                <i class="icon-shape icon-table"></i>
+                <span>Table</span>
             </button>
 
-            <button class="menu-item" data-tool="table" onclick="setTool('table')">
-                <span class="tool-icon table-icon"></span>
-                <span>テーブル</span>
+            <div class="menu-section-title">Tools</div>
+
+            <button class="menu-item" data-tool="select">
+                <i class="icon-shape icon-select"></i>
+                <span>Select & Move</span>
             </button>
 
-            <button class="menu-item" data-tool="wheelchair" onclick="setTool('wheelchair')">
-                <span class="tool-icon wheelchair-icon"></span>
-                <span>車椅子</span>
-            </button>
-
-            <button class="menu-item" data-tool="marker" onclick="setTool('marker')">
-                <span class="tool-icon marker-icon"></span>
-                <span>注意マーカー</span>
-            </button>
-
-            <div class="menu-section-title">操作</div>
-
-            <div class="history-buttons">
-                <button id="undoBtn" class="history-btn" onclick="undo()" title="元に戻す">
-                    ↶ <span>戻す</span>
+            <div class="menu-action-area">
+                <button class="action-btn save-btn" id="exportBtn">
+                    Export JSON
                 </button>
-                <button id="redoBtn" class="history-btn" onclick="redo()" title="やり直す">
-                    ↷ <span>進む</span>
+
+                <label class="action-btn import-btn">
+                    Import JSON
+                    <input type="file" id="importInput" accept=".json,application/json">
+                </label>
+
+                <button class="action-btn clear-btn" id="clearBtn">
+                    Reset All
                 </button>
             </div>
 
-            <button class="menu-item utility-item" onclick="duplicateSelected()">
-                <span>＋</span>
-                <span>複製</span>
-                <kbd>Ctrl+D</kbd>
-            </button>
-
-            <button class="menu-item utility-item" onclick="deleteSelected()">
-                <span>×</span>
-                <span>削除</span>
-                <kbd>Del</kbd>
-            </button>
-
-            <div class="menu-section-title">プロジェクト</div>
-
-            <div class="side-actions">
-                <button class="action-btn save-btn" onclick="saveProject()">
-                    JSONを書き出す
-                </button>
-
-                <button class="action-btn load-btn" onclick="document.getElementById('fileInput').click()">
-                    JSONを読み込む
-                </button>
-
-                <button class="action-btn clear-btn" onclick="clearAll()">
-                    新規図面
-                </button>
-
-                <input type="file" id="fileInput" accept=".json" hidden>
-            </div>
-
         </div>
-
-        <div class="sidebar-footer">
-            <span id="saveStatus">保存済み</span>
-            <span id="version">v2.0</span>
-        </div>
-
     </aside>
-
 
     <main id="main-container">
 
         <header class="top-bar">
 
             <div class="project-info">
-
-                <div class="project-name-area">
-                    <span class="project-label">PROJECT</span>
-
-                    <input
-                        id="projectName"
-                        class="project-name-input"
-                        value="新規住宅環境図"
-                        onchange="updateProjectName(this.value)"
-                    >
-                </div>
-
-                <div class="separator"></div>
-
-                <div class="stats">
-                    <span id="statsArea">面積 0.0 m²</span>
-                    <span id="statsObjects">0 オブジェクト</span>
-                </div>
-
+                <span class="project-label">Project:</span>
+                <span class="project-name">Example House</span>
+                <span id="stats-badge" class="stats-badge">
+                    Area: 0.0 m²
+                </span>
             </div>
-
 
             <div class="top-actions">
 
+                <button class="undo-btn" id="undoBtn" title="Undo">
+                    ↶
+                </button>
+
+                <button class="undo-btn" id="redoBtn" title="Redo">
+                    ↷
+                </button>
+
                 <div class="view-switch">
-                    <button id="btn2d" class="view-btn active" onclick="switchView('2d')">
+                    <button class="view-btn active" id="btn2d">
                         2D
                     </button>
 
-                    <button id="btn3d" class="view-btn" onclick="switchView('3d')">
+                    <button class="view-btn" id="btn3d">
                         3D
                     </button>
                 </div>
@@ -181,113 +130,60 @@
 
         </header>
 
+        <section id="viewport">
 
-        <section id="workspace">
+            <div class="toolbar-float">
 
-            <div id="viewport">
+                <button
+                    class="float-btn active-snap"
+                    id="snap-btn"
+                    title="Snap to Grid">
+                    <span>Grid</span>
+                </button>
 
-                <canvas id="c2d"></canvas>
+                <button
+                    class="float-btn"
+                    id="zoomInBtn"
+                    title="Zoom In">
+                    +
+                </button>
 
-                <div id="canvas3d"></div>
+                <button
+                    class="float-btn"
+                    id="zoomOutBtn"
+                    title="Zoom Out">
+                    −
+                </button>
 
-                <div class="floating-toolbar">
+                <button
+                    class="float-btn"
+                    id="fitBtn"
+                    title="Fit">
+                    Fit
+                </button>
 
-                    <button
-                        class="float-btn active"
-                        id="gridBtn"
-                        onclick="toggleGrid()"
-                        title="グリッド表示"
-                    >
-                        <span>▦</span>
-                    </button>
-
-                    <button
-                        class="float-btn active"
-                        id="snapBtn"
-                        onclick="toggleSnap()"
-                        title="グリッド吸着"
-                    >
-                        <span>⌗</span>
-                    </button>
-
-                    <div class="toolbar-divider"></div>
-
-                    <button class="float-btn" onclick="zoomIn()" title="拡大">
-                        ＋
-                    </button>
-
-                    <button class="zoom-label" id="zoomLabel" onclick="resetView()">
-                        100%
-                    </button>
-
-                    <button class="float-btn" onclick="zoomOut()" title="縮小">
-                        −
-                    </button>
-
-                    <div class="toolbar-divider"></div>
-
-                    <button class="float-btn" onclick="resetView()" title="表示をリセット">
-                        ⌂
-                    </button>
-
-                </div>
-
-
-                <div class="hint-bar">
-                    <span id="toolHint">オブジェクトをクリックして選択・移動</span>
-                </div>
-
-
-                <div id="emptyState" class="empty-state">
-                    <div class="empty-icon">⌗</div>
-                    <strong>図面を作成</strong>
-                    <span>左側のツールから部屋や家具を配置してください</span>
-                </div>
+                <button
+                    class="float-btn danger"
+                    id="deleteBtn"
+                    title="Delete Selected">
+                    Del
+                </button>
 
             </div>
 
+            <div id="mobile-hint">
+                1本指: 操作　・　2本指: 移動 / 拡大縮小
+            </div>
 
-            <aside id="propertiesPanel" class="properties-panel hidden">
+            <canvas id="c2d"></canvas>
 
-                <div class="properties-header">
-                    <div>
-                        <span class="properties-label">PROPERTIES</span>
-                        <h3 id="propertyTitle">オブジェクト</h3>
-                    </div>
-
-                    <button onclick="clearSelection()" class="close-property">×</button>
-                </div>
-
-
-                <div id="propertyContent"></div>
-
-            </aside>
+            <div id="canvas3d"></div>
 
         </section>
-
-
-        <footer class="bottom-bar">
-
-            <div class="bottom-left">
-                <span id="cursorPosition">X: 0.00m　Y: 0.00m</span>
-            </div>
-
-            <div class="bottom-center">
-                <span>Shift：水平・垂直固定</span>
-                <span>Ctrl：スナップ無効</span>
-                <span>Space：パン</span>
-            </div>
-
-            <div class="bottom-right">
-                <span id="currentToolLabel">選択</span>
-            </div>
-
-        </footer>
 
     </main>
 
 </div>
-
 
 <script src="app.js"></script>
 
