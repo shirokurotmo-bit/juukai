@@ -1,7 +1,7 @@
 "use strict";
 
 /* =========================================================
-   Floorplanner Pro
+   Floorplanner Pro - Performance Optimized
    2D / 3D floor planner
    Pointer Events based interaction
    Desktop + Tablet + Smartphone
@@ -11,6 +11,10 @@ const canvas = document.getElementById("c2d");
 const ctx = canvas.getContext("2d");
 const viewport = document.getElementById("viewport");
 const container3d = document.getElementById("canvas3d");
+
+/* Element type cache for O(1) lookups */
+const RECTANGULAR_TYPES = new Set(["room", "bed", "sofa", "table"]);
+const LINEAR_TYPES = new Set(["wall", "door", "window"]);
 
 const state = {
     tool: "room",
@@ -51,10 +55,16 @@ const state = {
 
     history: [],
     historyIndex: -1,
+    lastHistoryState: null,
 
     renderer3d: null,
     scene3d: null,
-    camera3d: null
+    camera3d: null,
+
+    spatialIndex: null,
+    spatialIndexDirty: true,
+
+    statsCache: { dirty: true, value: "Area: 0 m²" }
 };
 
 
@@ -78,6 +88,14 @@ const btn3d = document.getElementById("btn3d");
 const exportButton = document.getElementById("exportBtn");
 const importInput = document.getElementById("importInput");
 const clearButton = document.getElementById("clearBtn");
+
+let menuItemsCache = null;
+function getMenuItems() {
+    if (!menuItemsCache) {
+        menuItemsCache = document.querySelectorAll(".menu-item");
+    }
+    return menuItemsCache;
+}
 
 
 /* =========================================================
@@ -103,7 +121,79 @@ function midpoint(a, b) {
 }
 
 function deepClone(value) {
+    if (typeof structuredClone !== 'undefined') {
+        return structuredClone(value);
+    }
     return JSON.parse(JSON.stringify(value));
+}
+
+
+/* =========================================================
+   Spatial Indexing
+========================================================= */
+
+class SpatialIndex {
+    constructor(cellSize = 100) {
+        this.cellSize = cellSize;
+        this.cells = new Map();
+    }
+
+    clear() {
+        this.cells.clear();
+    }
+
+    add(element, id) {
+        const bounds = this.getBounds(element);
+        const minCellX = Math.floor(bounds.minX / this.cellSize);
+        const maxCellX = Math.floor(bounds.maxX / this.cellSize);
+        const minCellY = Math.floor(bounds.minY / this.cellSize);
+        const maxCellY = Math.floor(bounds.maxY / this.cellSize);
+
+        for (let x = minCellX; x <= maxCellX; x++) {
+            for (let y = minCellY; y <= maxCellY; y++) {
+                const key = `${x},${y}`;
+                if (!this.cells.has(key)) {
+                    this.cells.set(key, []);
+                }
+                this.cells.get(key).push(id);
+            }
+        }
+    }
+
+    getBounds(element) {
+        if (RECTANGULAR_TYPES.has(element.type)) {
+            return {
+                minX: element.x,
+                minY: element.y,
+                maxX: element.x + element.w,
+                maxY: element.y + element.h
+            };
+        } else {
+            return {
+                minX: Math.min(element.x1, element.x2),
+                minY: Math.min(element.y1, element.y2),
+                maxX: Math.max(element.x1, element.x2),
+                maxY: Math.max(element.y1, element.y2)
+            };
+        }
+    }
+
+    query(x, y) {
+        const cellX = Math.floor(x / this.cellSize);
+        const cellY = Math.floor(y / this.cellSize);
+        const key = `${cellX},${cellY}`;
+        return this.cells.get(key) || [];
+    }
+}
+
+const spatialIndex = new SpatialIndex(200);
+
+function rebuildSpatialIndex() {
+    spatialIndex.clear();
+    state.elements.forEach((el, i) => {
+        spatialIndex.add(el, i);
+    });
+    state.spatialIndexDirty = false;
 }
 
 
@@ -186,7 +276,7 @@ function setTool(tool) {
     state.dragging = false;
     state.panning = false;
 
-    document.querySelectorAll(".menu-item").forEach(item => {
+    getMenuItems().forEach(item => {
         item.classList.toggle(
             "active",
             item.dataset.tool === tool
@@ -201,7 +291,7 @@ function setTool(tool) {
     redraw2D();
 }
 
-document.querySelectorAll(".menu-item").forEach(item => {
+getMenuItems().forEach(item => {
     item.addEventListener("click", () => {
         setTool(item.dataset.tool);
     });
@@ -283,12 +373,17 @@ function distanceToSegment(px, py, x1, y1, x2, y2) {
 }
 
 function hitTest(x, y) {
-    for (let i = state.elements.length - 1; i >= 0; i--) {
-        const el = state.elements[i];
+    if (state.spatialIndexDirty) {
+        rebuildSpatialIndex();
+    }
 
-        if (
-            ["room", "bed", "sofa", "table"].includes(el.type)
-        ) {
+    const candidateIndices = spatialIndex.query(x, y);
+
+    for (let i = candidateIndices.length - 1; i >= 0; i--) {
+        const idx = candidateIndices[i];
+        const el = state.elements[idx];
+
+        if (RECTANGULAR_TYPES.has(el.type)) {
             if (pointInRect(x, y, el)) {
                 return el;
             }
@@ -339,7 +434,6 @@ function onPointerDown(event) {
 
     const world = getWorldPosition(event);
 
-    /* Select */
     if (state.tool === "select") {
 
         const hit = hitTest(world.x, world.y);
@@ -347,10 +441,7 @@ function onPointerDown(event) {
         if (hit) {
             state.selected = hit;
 
-            if (
-                ["room", "bed", "sofa", "table"]
-                    .includes(hit.type)
-            ) {
+            if (RECTANGULAR_TYPES.has(hit.type)) {
                 state.dragOffsetX =
                     world.x - hit.x;
 
@@ -380,11 +471,7 @@ function onPointerDown(event) {
         return;
     }
 
-    /* Object */
-    if (
-        ["bed", "sofa", "table"]
-            .includes(state.tool)
-    ) {
+    if (["bed", "sofa", "table"].includes(state.tool)) {
         createObject(
             state.tool,
             world.x,
@@ -395,7 +482,6 @@ function onPointerDown(event) {
         return;
     }
 
-    /* Drawing */
     state.drawing = true;
     state.startWorld = {
         x: world.x,
@@ -422,6 +508,7 @@ function onPointerMove(event) {
 
     if (state.dragging && state.selected) {
         moveSelected(world);
+        state.spatialIndexDirty = true;
         redraw2D();
         return;
     }
@@ -672,12 +759,11 @@ function finishDrawing() {
                 w,
                 h
             });
+
+            state.spatialIndexDirty = true;
         }
 
-    } else if (
-        ["wall", "door", "window"]
-            .includes(state.tool)
-    ) {
+    } else if (LINEAR_TYPES.has(state.tool)) {
 
         state.elements.push({
             id: crypto.randomUUID(),
@@ -687,6 +773,8 @@ function finishDrawing() {
             x2: end.x,
             y2: end.y
         });
+
+        state.spatialIndexDirty = true;
     }
 
     commitHistory();
@@ -742,6 +830,8 @@ function createObject(type, x, y) {
         name: def.name
     });
 
+    state.spatialIndexDirty = true;
+
     commitHistory();
     updateStats();
 }
@@ -757,10 +847,7 @@ function moveSelected(world) {
 
     if (!el) return;
 
-    if (
-        ["room", "bed", "sofa", "table"]
-            .includes(el.type)
-    ) {
+    if (RECTANGULAR_TYPES.has(el.type)) {
         el.x = snap(
             world.x - state.dragOffsetX
         );
@@ -804,6 +891,7 @@ function deleteSelected() {
         );
 
     state.selected = null;
+    state.spatialIndexDirty = true;
 
     commitHistory();
 
@@ -864,16 +952,44 @@ window.addEventListener("keydown", event => {
    History
 ========================================================= */
 
+function arraysEqual(a, b) {
+    if (!Array.isArray(a) || !Array.isArray(b)) return false;
+    if (a.length !== b.length) return false;
+
+    for (let i = 0; i < a.length; i++) {
+        const aItem = a[i];
+        const bItem = b[i];
+
+        if (aItem.type !== bItem.type ||
+            aItem.id !== bItem.id) {
+            return false;
+        }
+
+        if (RECTANGULAR_TYPES.has(aItem.type)) {
+            if (aItem.x !== bItem.x ||
+                aItem.y !== bItem.y ||
+                aItem.w !== bItem.w ||
+                aItem.h !== bItem.h) {
+                return false;
+            }
+        } else {
+            if (aItem.x1 !== bItem.x1 ||
+                aItem.y1 !== bItem.y1 ||
+                aItem.x2 !== bItem.x2 ||
+                aItem.y2 !== bItem.y2) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
 function saveHistoryPoint() {
 
-    if (
-        state.historyIndex >= 0 &&
-        JSON.stringify(
-            state.elements
-        ) === JSON.stringify(
-            state.history[state.historyIndex]
-        )
-    ) {
+    const currentState = deepClone(state.elements);
+
+    if (state.lastHistoryState && arraysEqual(state.lastHistoryState, currentState)) {
         return;
     }
 
@@ -883,9 +999,7 @@ function saveHistoryPoint() {
             state.historyIndex + 1
         );
 
-    state.history.push(
-        deepClone(state.elements)
-    );
+    state.history.push(currentState);
 
     if (state.history.length > 50) {
         state.history.shift();
@@ -894,22 +1008,16 @@ function saveHistoryPoint() {
     state.historyIndex =
         state.history.length - 1;
 
+    state.lastHistoryState = deepClone(currentState);
+
     updateHistoryButtons();
 }
 
 function commitHistory() {
 
-    const current =
-        JSON.stringify(state.elements);
+    const currentState = deepClone(state.elements);
 
-    const last =
-        state.historyIndex >= 0
-            ? JSON.stringify(
-                state.history[state.historyIndex]
-            )
-            : null;
-
-    if (current === last) {
+    if (state.lastHistoryState && arraysEqual(state.lastHistoryState, currentState)) {
         updateHistoryButtons();
         return;
     }
@@ -920,9 +1028,7 @@ function commitHistory() {
             state.historyIndex + 1
         );
 
-    state.history.push(
-        deepClone(state.elements)
-    );
+    state.history.push(currentState);
 
     if (state.history.length > 50) {
         state.history.shift();
@@ -930,6 +1036,8 @@ function commitHistory() {
 
     state.historyIndex =
         state.history.length - 1;
+
+    state.lastHistoryState = deepClone(currentState);
 
     updateHistoryButtons();
 }
@@ -946,6 +1054,7 @@ function undo() {
         );
 
     state.selected = null;
+    state.spatialIndexDirty = true;
 
     updateStats();
     redraw2D();
@@ -967,6 +1076,7 @@ function redo() {
         );
 
     state.selected = null;
+    state.spatialIndexDirty = true;
 
     updateStats();
     redraw2D();
@@ -1425,6 +1535,9 @@ function drawPreview() {
 ========================================================= */
 
 function updateStats() {
+    if (!state.statsCache.dirty) {
+        return;
+    }
 
     let totalAreaPx = 0;
 
@@ -1439,8 +1552,11 @@ function updateStats() {
     const m2 =
         totalAreaPx / 400;
 
-    statsBadge.textContent =
+    state.statsCache.value =
         `Area: ${m2.toFixed(1)} m²`;
+
+    state.statsCache.dirty = false;
+    statsBadge.textContent = state.statsCache.value;
 }
 
 
@@ -1467,10 +1583,7 @@ function fitView() {
 
     state.elements.forEach(el => {
 
-        if (
-            ["room", "bed", "sofa", "table"]
-                .includes(el.type)
-        ) {
+        if (RECTANGULAR_TYPES.has(el.type)) {
 
             minX = Math.min(
                 minX,
@@ -1570,6 +1683,19 @@ function render3D() {
         return;
     }
 
+    if (!state.renderer3d) {
+        initializeScene3D();
+    }
+
+    updateScene3D();
+
+    state.renderer3d.render(
+        state.scene3d,
+        state.camera3d
+    );
+}
+
+function initializeScene3D() {
     container3d.innerHTML = "";
 
     const width =
@@ -1663,6 +1789,22 @@ function render3D() {
 
     scene.add(grid);
 
+    state.renderer3d = renderer;
+    state.scene3d = scene;
+    state.camera3d = camera;
+}
+
+function updateScene3D() {
+    const scene = state.scene3d;
+
+    const meshesToRemove = [];
+    scene.children.forEach(child => {
+        if (child instanceof THREE.Mesh && !(child.geometry instanceof THREE.GridHelper)) {
+            meshesToRemove.push(child);
+        }
+    });
+    meshesToRemove.forEach(mesh => scene.remove(mesh));
+
     state.elements.forEach(el => {
 
         if (el.type === "room") {
@@ -1725,8 +1867,7 @@ function render3D() {
             scene.add(mesh);
 
         } else if (
-            ["door", "window"]
-                .includes(el.type)
+            LINEAR_TYPES.has(el.type) && el.type !== "wall"
         ) {
 
             const dx =
@@ -1799,15 +1940,6 @@ function render3D() {
             scene.add(mesh);
         }
     });
-
-    state.renderer3d = renderer;
-    state.scene3d = scene;
-    state.camera3d = camera;
-
-    renderer.render(
-        scene,
-        camera
-    );
 }
 
 
@@ -1918,6 +2050,7 @@ importInput.addEventListener(
                 deepClone(imported);
 
             state.selected = null;
+            state.spatialIndexDirty = true;
 
             commitHistory();
 
@@ -1946,10 +2079,7 @@ function validateElement(el) {
         return false;
     }
 
-    if (
-        ["room", "bed", "sofa", "table"]
-            .includes(el.type)
-    ) {
+    if (RECTANGULAR_TYPES.has(el.type)) {
 
         return [
             el.x,
@@ -1962,10 +2092,7 @@ function validateElement(el) {
 
     }
 
-    if (
-        ["wall", "door", "window"]
-            .includes(el.type)
-    ) {
+    if (LINEAR_TYPES.has(el.type)) {
 
         return [
             el.x1,
@@ -2001,6 +2128,7 @@ clearButton.addEventListener(
 
         state.elements = [];
         state.selected = null;
+        state.spatialIndexDirty = true;
 
         state.zoom = 1;
         state.panX = 0;
@@ -2031,7 +2159,6 @@ function initialize() {
     updateHistoryButtons();
     updateStats();
 
-    /* Mobile browser scroll / gesture suppression */
     document.addEventListener(
         "gesturestart",
         event => event.preventDefault(),
